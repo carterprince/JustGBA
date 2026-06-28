@@ -7,7 +7,7 @@ JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and
 ## Features
 
 - Saves
-- Controller support (tested with Xbox, better support coming soon)
+- Controller support (tested with Xbox, broader support is planned)
 - Fast Forwarding (1.25x, 1.5x, 2x, up to 8x and Max)
 - Optional Fast Forward toggle and press to Fast Forward buttons
 - FPS Counter
