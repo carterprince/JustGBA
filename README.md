@@ -16,10 +16,10 @@ JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and
 ## TODO
 
 - Portrait mode
-- Rebinding buttons
-- Export saves
-- Some kind of Recently played library/interface in the main menu
 - Make sure Android Intents is working
+- Export saves
+- Rebinding buttons
+- Some kind of Recently played library/interface in the main menu
 
 ## Build
 
