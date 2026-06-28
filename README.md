@@ -4,6 +4,21 @@ Standalone [gpSP](https://github.com/libretro/gpsp)-based GBA emulator for Andro
 
 JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and very low power consumption, even when fast-forwarding.
 
+## Features
+
+- Saves
+- Controller support (tested with Xbox, better support coming soon)
+- Fast Forwarding (1.25x, 1.5x, 2x, up to 8x and Max)
+- Optional Fast Forward toggle and press to Fast Forward buttons
+- FPS Counter
+- On-screen buttons
+
+## TODO
+
+- Rebinding buttons
+- Export saves
+- Some kind of Recently played library/interface in the main menu
+- Portrait mode
 
 ## Build
 
