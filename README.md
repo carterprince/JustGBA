@@ -15,10 +15,10 @@ JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and
 
 ## TODO
 
+- Portrait mode
 - Rebinding buttons
 - Export saves
 - Some kind of Recently played library/interface in the main menu
-- Portrait mode
 
 ## Build
 
