@@ -2,7 +2,7 @@
 
 Standalone [gpSP](https://github.com/libretro/gpsp)-based GBA emulator for Android (arm64-v8a). Built to be efficient, fast, and minimal.
 
-JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and very low power consumption, even when fast-forwarding.
+JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and very low power consumption, even when fast-forwarding. This makes it well-suited for mobile scenarios where efficiency is paramount.
 
 ## Features
 
