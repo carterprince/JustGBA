@@ -13,16 +13,6 @@ JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and
 
 Requires Android SDK, NDK 26.1.10909125. Output: `JustGBA.apk`.
 
-## Controls
-
-| Button   | Key                          |
-|----------|------------------------------|
-| A / B    | `X` / `Z` or controller B / A |
-| L / R    | `A`/`Q` / `S`/`W` or L1/R1   |
-| Select   | Left Shift / Select          |
-| Start    | Enter / Start                |
-| D-Pad    | Arrow keys                   |
-
 ## License
 
 JustGBA is and will always be completely free and open-source software, under the GPL v2 license (inheriting from gpSP).
