@@ -1,0 +1,174 @@
+package com.justgba
+
+import android.net.Uri
+import android.os.Bundle
+import android.provider.OpenableColumns
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import com.justgba.audio.AudioEngine
+import com.justgba.emulator.EmulatorThread
+import com.justgba.emulator.NativeBridge
+import com.justgba.settings.SettingsManager
+import com.justgba.ui.FilePicker
+import com.justgba.ui.GameScreen
+import java.io.File
+
+class MainActivity : ComponentActivity() {
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
+    private var audioEngine: AudioEngine? = null
+    private var emulatorThread: EmulatorThread? = null
+    private var currentSavePath: String? = null
+    private lateinit var settingsManager: SettingsManager
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        settingsManager = SettingsManager(applicationContext)
+
+        setContent {
+            var currentRomPath by remember { mutableStateOf<String?>(null) }
+
+            if (currentRomPath == null) {
+                FilePicker(
+                    onRomSelected = { uri ->
+                        val path = resolveRomPath(uri)
+                        if (path != null) {
+                            val originalName = getOriginalFilename(uri)
+                            val savePath = File(
+                                getExternalFilesDir(null) ?: filesDir,
+                                "${File(originalName).nameWithoutExtension}.sav"
+                            ).absolutePath
+                            currentSavePath = savePath
+                            startEmulation(path, savePath)
+                            currentRomPath = path
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                GameScreen(
+                    onExit = {
+                        stopEmulation()
+                        currentRomPath = null
+                    },
+                    emulatorThread = emulatorThread,
+                    settingsManager = settingsManager,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        emulatorThread?.pause()
+        audioEngine?.pause()
+        currentSavePath?.let { NativeBridge.nativeBatterySave(it) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        audioEngine?.resume()
+        emulatorThread?.resume()
+    }
+
+    override fun onDestroy() {
+        stopEmulation()
+        super.onDestroy()
+    }
+
+    private fun resolveRomPath(uri: Uri): String? {
+        try {
+            val docId = if (uri.scheme == "content") {
+                val parts = uri.lastPathSegment?.split(":")
+                if (parts != null && parts.size > 1) parts[1] else null
+            } else null
+
+            if (docId != null && docId.startsWith("/")) {
+                val file = File(docId)
+                if (file.exists()) return file.absolutePath
+            }
+
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val originalName = getOriginalFilename(uri)
+            val cacheFile = File(cacheDir, originalName)
+            cacheFile.outputStream().use { output ->
+                inputStream.copyTo(output)
+            }
+            inputStream.close()
+            return cacheFile.absolutePath
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to resolve ROM path", e)
+            return null
+        }
+    }
+
+    private fun getOriginalFilename(uri: Uri): String {
+        try {
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            if (cursor != null) {
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0 && cursor.moveToFirst()) {
+                    val name = cursor.getString(nameIndex)
+                    cursor.close()
+                    return name ?: "rom.gba"
+                }
+                cursor.close()
+            }
+        } catch (_: Exception) {}
+        return uri.lastPathSegment ?: "rom.gba"
+    }
+
+    private fun startEmulation(romPath: String, savePath: String) {
+        val sysDir = filesDir.absolutePath
+        val saveDir = getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath
+
+        if (!NativeBridge.nativeInit(sysDir, saveDir)) {
+            Log.e(TAG, "nativeInit failed")
+            return
+        }
+
+        if (!NativeBridge.nativeLoadGame(romPath)) {
+            Log.e(TAG, "nativeLoadGame failed")
+            NativeBridge.nativeDeinit()
+            return
+        }
+
+        NativeBridge.nativeBatteryLoad(savePath)
+        Log.i(TAG, "Battery save loaded from $savePath")
+
+        val audio = AudioEngine()
+        if (!audio.init()) {
+            Log.w(TAG, "AudioEngine init failed, continuing without audio")
+        }
+        audioEngine = audio
+
+        val thread = EmulatorThread(audio)
+        thread.start()
+        emulatorThread = thread
+    }
+
+    private fun stopEmulation() {
+        currentSavePath?.let { NativeBridge.nativeBatterySave(it) }
+        emulatorThread?.stop()
+        emulatorThread = null
+        audioEngine?.release()
+        audioEngine = null
+        currentSavePath = null
+        try {
+            NativeBridge.nativeDeinit()
+            Log.i(TAG, "Emulation stopped")
+        } catch (e: Exception) {
+            Log.e(TAG, "nativeDeinit failed", e)
+        }
+    }
+}
