@@ -4,6 +4,7 @@ Standalone [gpSP](https://github.com/libretro/gpsp)-based GBA emulator for Andro
 
 JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and very low power consumption, even when fast-forwarding.
 
+
 ## Build
 
 ```bash
@@ -24,4 +25,4 @@ Requires Android SDK, NDK 26.1.10909125. Output: `JustGBA.apk`.
 
 ## License
 
-GPL-2.0
+JustGBA is and will always be completely free and open-source software, under the GPL v2 license (inheriting from gpSP).
