@@ -23,6 +23,7 @@ class EmulatorThread(
     @Volatile var muteFfAudio = true
     var frameChannel: Channel<Unit>? = null
     val frameSync = Semaphore(0)
+    val renderLock = Object()
 
     fun requestFrame() {
         frameSync.drainPermits()
@@ -73,7 +74,9 @@ class EmulatorThread(
 
             NativeBridge.nativeSetSkipRender(false)
 
-            NativeBridge.nativeRunFrame()
+            synchronized(renderLock) {
+                NativeBridge.nativeRunFrame()
+            }
             frameChannel?.trySend(Unit)
 
             if (fastForward && ffSpeedMultiplier > 0) {

@@ -1,6 +1,6 @@
 # JustGBA
 
-Standalone [gpSP](https://github.com/libretro/gpsp)-based GBA emulator for Android (arm64-v8a).
+Standalone [gpSP](https://github.com/libretro/gpsp)-based GBA emulator for Android (arm64-v8a). Built to be efficient, fast, and minimal.
 
 ## Build
 

@@ -102,6 +102,16 @@ fun GameScreen(
                     triggerStates[1] = false
                     view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BUTTON_R2, 0))
                 }
+
+                val x = ev.getAxisValue(MotionEvent.AXIS_X)
+                val y = ev.getAxisValue(MotionEvent.AXIS_Y)
+                val hatX = ev.getAxisValue(MotionEvent.AXIS_HAT_X)
+                val hatY = ev.getAxisValue(MotionEvent.AXIS_HAT_Y)
+
+                InputState.setButton(0, GbaButtons.LEFT, x < -0.5f || hatX < -0.5f)
+                InputState.setButton(0, GbaButtons.RIGHT, x > 0.5f || hatX > 0.5f)
+                InputState.setButton(0, GbaButtons.UP, y < -0.5f || hatY < -0.5f)
+                InputState.setButton(0, GbaButtons.DOWN, y > 0.5f || hatY > 0.5f)
                 true
             } else {
                 false
@@ -322,8 +332,15 @@ fun GameScreen(
                         val canvas = holder.lockHardwareCanvas() ?: holder.lockCanvas()
                         if (canvas != null) {
                             try {
-                                buf.rewind()
-                                bitmap.copyPixelsFromBuffer(buf)
+                                if (emulatorThread != null) {
+                                    synchronized(emulatorThread.renderLock) {
+                                        buf.rewind()
+                                        bitmap.copyPixelsFromBuffer(buf)
+                                    }
+                                } else {
+                                    buf.rewind()
+                                    bitmap.copyPixelsFromBuffer(buf)
+                                }
 
                                 val cw = canvas.width.toFloat()
                                 val ch = canvas.height.toFloat()
