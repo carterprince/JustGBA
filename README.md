@@ -19,6 +19,7 @@ JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and
 - Rebinding buttons
 - Export saves
 - Some kind of Recently played library/interface in the main menu
+- Make sure Android Intents is working
 
 ## Build
 
