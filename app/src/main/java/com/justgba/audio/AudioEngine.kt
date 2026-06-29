@@ -86,49 +86,54 @@ class AudioEngine {
     fun tick() {
         val track = audioTrack ?: return
 
-        if (fastForward && muteFfAudio) {
-            val readable = NativeBridge.nativeAudioReadable()
-            if (readable > 0) {
-                val toRead = min(readable, readBuf.size)
-                NativeBridge.nativeReadAudio(readBuf, toRead)
+        // 1. ALWAYS drain the native buffer first! 
+        // This prevents gpSP from building up a 1-second backlog in C++ memory.
+        val readable = NativeBridge.nativeAudioReadable()
+        var newFrames = 0
+        
+        if (readable > 0) {
+            val toRead = min(readable, readBuf.size)
+            val samples = NativeBridge.nativeReadAudio(readBuf, toRead)
+            
+            if (fastForward && muteFfAudio) {
+                leftoverFrames = 0 // Clear any old audio
+                return
             }
-            return
+            
+            if (samples > 0) {
+                newFrames = sampleRateConvert65536to48000(readBuf, samples / 2)
+            }
         }
 
-        // Step A: Process any leftovers from previous tick first
+        // 2. Try to write any leftovers from previous frames
         if (leftoverFrames > 0) {
             val written = track.write(leftoverBuf, 0, leftoverFrames * 2, AudioTrack.WRITE_NON_BLOCKING)
             if (written > 0) {
-                val consumedSamples = written / 2
-                val remaining = leftoverFrames - consumedSamples
-                if (remaining > 0) {
-                    System.arraycopy(leftoverBuf, written, leftoverBuf, 0, remaining * 2)
+                val framesWritten = written / 2
+                leftoverFrames -= framesWritten
+                if (leftoverFrames > 0) {
+                    System.arraycopy(leftoverBuf, written, leftoverBuf, 0, leftoverFrames * 2)
                 }
-                leftoverFrames = remaining
-            }
-            if (leftoverFrames > 0) {
-                return
             }
         }
 
-        // Step B: Read native audio and resample
-        val readable = NativeBridge.nativeAudioReadable()
-        if (readable <= 0) return
+        // 3. Write the newly generated audio
+        if (newFrames > 0) {
+            // If we still have leftovers, the AudioTrack is 100% full (happens during FF).
+            // We MUST drop this new audio to stay in sync with the video.
+            if (leftoverFrames > 0) {
+                return 
+            }
 
-        val toRead = min(readable, readBuf.size)
-        val samples = NativeBridge.nativeReadAudio(readBuf, toRead)
-        if (samples <= 0) return
-
-        val frames = sampleRateConvert65536to48000(readBuf, samples / 2)
-        if (frames <= 0) return
-
-        // Step C: Write converted audio, saving any rejected samples as leftovers
-        val written = track.write(convertedBuf, 0, frames * 2, AudioTrack.WRITE_NON_BLOCKING)
-
-        if (written < frames * 2) {
-            val rejectedSamples = frames * 2 - written
-            System.arraycopy(convertedBuf, written, leftoverBuf, 0, rejectedSamples)
-            leftoverFrames = rejectedSamples / 2
+            val written = track.write(convertedBuf, 0, newFrames * 2, AudioTrack.WRITE_NON_BLOCKING)
+            
+            // Save any unwritten samples to prevent crackling at 1x speed
+            if (written < newFrames * 2) {
+                val unwrittenFrames = newFrames - (written / 2)
+                val framesToSave = min(unwrittenFrames, leftoverBuf.size / 2)
+                System.arraycopy(convertedBuf, written, leftoverBuf, 0, framesToSave * 2)
+                leftoverFrames = framesToSave
+            }
         }
     }
 
