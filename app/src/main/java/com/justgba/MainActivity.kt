@@ -1,5 +1,6 @@
 package com.justgba
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -9,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.justgba.audio.AudioEngine
@@ -29,14 +29,15 @@ class MainActivity : ComponentActivity() {
     private var emulatorThread: EmulatorThread? = null
     private var currentSavePath: String? = null
     private lateinit var settingsManager: SettingsManager
+    private var currentRomPath by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsManager = SettingsManager(applicationContext)
 
-        setContent {
-            var currentRomPath by remember { mutableStateOf<String?>(null) }
+        handleIntent(intent)
 
+        setContent {
             if (currentRomPath == null) {
                 FilePicker(
                     onRomSelected = { uri ->
@@ -65,6 +66,30 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+            stopEmulation()
+            handleIntent(intent)
+        }
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val uri = intent.data ?: return
+        val path = resolveRomPath(uri)
+        if (path != null) {
+            val originalName = getOriginalFilename(uri)
+            val savePath = File(
+                getExternalFilesDir(null) ?: filesDir,
+                "${File(originalName).nameWithoutExtension}.sav"
+            ).absolutePath
+            currentSavePath = savePath
+            startEmulation(path, savePath)
+            currentRomPath = path
         }
     }
 
