@@ -17,12 +17,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.justgba.audio.AudioEngine
-import kotlinx.coroutines.launch
+import com.justgba.data.RecentRomEntry
+import com.justgba.data.RecentRomsManager
 import com.justgba.emulator.EmulatorThread
 import com.justgba.emulator.NativeBridge
 import com.justgba.settings.SettingsManager
-import com.justgba.ui.FilePicker
 import com.justgba.ui.GameScreen
+import com.justgba.ui.MainMenu
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipFile
@@ -36,11 +38,13 @@ class MainActivity : ComponentActivity() {
     private var emulatorThread: EmulatorThread? = null
     private var currentSavePath: String? = null
     private lateinit var settingsManager: SettingsManager
+    private lateinit var recentRomsManager: RecentRomsManager
     private var currentRomPath by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsManager = SettingsManager(applicationContext)
+        recentRomsManager = RecentRomsManager(applicationContext)
 
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -58,7 +62,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             if (currentRomPath == null) {
-                FilePicker(
+                MainMenu(
+                    recentRomsManager = recentRomsManager,
+                    settingsManager = settingsManager,
                     onRomSelected = { uri ->
                         val path = resolveRomPath(uri)
                         if (path != null) {
@@ -66,6 +72,32 @@ class MainActivity : ComponentActivity() {
                             val savePath = File(
                                 getExternalFilesDir(null) ?: filesDir,
                                 "${File(originalName).nameWithoutExtension}.sav"
+                            ).absolutePath
+                            currentSavePath = savePath
+                            startEmulation(path, savePath)
+                            currentRomPath = path
+                            lifecycleScope.launch {
+                                recentRomsManager.addOrUpdateEntry(
+                                    RecentRomEntry(
+                                        displayName = originalName,
+                                        uri = uri.toString(),
+                                        lastPlayed = System.currentTimeMillis(),
+                                        cachePath = path,
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    onRecentSelected = { entry ->
+                        val path = if (File(entry.cachePath).exists()) {
+                            entry.cachePath
+                        } else {
+                            resolveRomPath(Uri.parse(entry.uri))
+                        }
+                        if (path != null) {
+                            val savePath = File(
+                                getExternalFilesDir(null) ?: filesDir,
+                                "${File(entry.displayName).nameWithoutExtension}.sav"
                             ).absolutePath
                             currentSavePath = savePath
                             startEmulation(path, savePath)
@@ -109,6 +141,16 @@ class MainActivity : ComponentActivity() {
             currentSavePath = savePath
             startEmulation(path, savePath)
             currentRomPath = path
+            lifecycleScope.launch {
+                recentRomsManager.addOrUpdateEntry(
+                    RecentRomEntry(
+                        displayName = originalName,
+                        uri = uri.toString(),
+                        lastPlayed = System.currentTimeMillis(),
+                        cachePath = path,
+                    )
+                )
+            }
         }
     }
 

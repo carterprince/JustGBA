@@ -59,11 +59,12 @@ fun SettingsDialog(
     onFfHoldKeyChange: (Int) -> Unit,
     onFfToggleKeyChange: (Int) -> Unit,
     onResume: () -> Unit,
-    onExit: () -> Unit,
+    onExit: (() -> Unit)? = null,
+    title: String = "Game Paused",
 ) {
     AlertDialog(
         onDismissRequest = onResume,
-        title = { Text("Game Paused") },
+        title = { Text(title) },
         text = {
             val view = LocalView.current
             val triggerStates = remember { booleanArrayOf(false, false) }
@@ -198,14 +199,16 @@ fun SettingsDialog(
                     onClick = onResume,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Resume Game")
+                    Text(if (onExit == null) "Close" else "Resume Game")
                 }
 
-                TextButton(
-                    onClick = onExit,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Exit Game")
+                if (onExit != null) {
+                    TextButton(
+                        onClick = onExit,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Exit Game")
+                    }
                 }
             }
         },
