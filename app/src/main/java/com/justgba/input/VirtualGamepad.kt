@@ -1,5 +1,6 @@
 package com.justgba.input
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
@@ -44,6 +46,30 @@ object GbaButtons {
 
 @Composable
 fun VirtualGamepad(
+    modifier: Modifier = Modifier,
+    onButtonDown: (Int) -> Unit = {},
+    onButtonUp: (Int) -> Unit = {},
+) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+
+    if (isLandscape) {
+        LandscapeGamepad(
+            modifier = modifier,
+            onButtonDown = onButtonDown,
+            onButtonUp = onButtonUp,
+        )
+    } else {
+        PortraitGamepad(
+            modifier = modifier,
+            onButtonDown = onButtonDown,
+            onButtonUp = onButtonUp,
+        )
+    }
+}
+
+@Composable
+private fun LandscapeGamepad(
     modifier: Modifier = Modifier,
     onButtonDown: (Int) -> Unit = {},
     onButtonUp: (Int) -> Unit = {},
@@ -84,6 +110,53 @@ fun VirtualGamepad(
             onB = { onButtonDown(GbaButtons.B) },
             onRelease = { id -> onButtonUp(id) }
         )
+    }
+}
+
+@Composable
+private fun PortraitGamepad(
+    modifier: Modifier = Modifier,
+    onButtonDown: (Int) -> Unit = {},
+    onButtonUp: (Int) -> Unit = {},
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            DPad(
+                onDown = { onButtonDown(GbaButtons.DOWN) },
+                onUp = { onButtonDown(GbaButtons.UP) },
+                onLeft = { onButtonDown(GbaButtons.LEFT) },
+                onRight = { onButtonDown(GbaButtons.RIGHT) },
+                onRelease = { id -> onButtonUp(id) }
+            )
+            ActionButtons(
+                onA = { onButtonDown(GbaButtons.A) },
+                onB = { onButtonDown(GbaButtons.B) },
+                onRelease = { id -> onButtonUp(id) }
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ShoulderButton("L", GbaButtons.L, onButtonDown, onButtonUp)
+            Spacer(Modifier.width(12.dp))
+            GameButton("Select", GbaButtons.SELECT, { onButtonDown(GbaButtons.SELECT) }, { onButtonUp(GbaButtons.SELECT) })
+            Spacer(Modifier.width(8.dp))
+            GameButton("Start", GbaButtons.START, { onButtonDown(GbaButtons.START) }, { onButtonUp(GbaButtons.START) })
+            Spacer(Modifier.width(12.dp))
+            ShoulderButton("R", GbaButtons.R, onButtonDown, onButtonUp)
+        }
     }
 }
 

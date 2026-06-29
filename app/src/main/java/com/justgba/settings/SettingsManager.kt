@@ -19,6 +19,7 @@ class SettingsManager(private val context: Context) {
         val SHOW_FPS = booleanPreferencesKey("show_fps")
         val FF_HOLD_KEY = intPreferencesKey("ff_hold_key")
         val FF_TOGGLE_KEY = intPreferencesKey("ff_toggle_key")
+        val LOCK_LANDSCAPE = booleanPreferencesKey("lock_landscape")
     }
 
     val hideButtons: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -43,6 +44,10 @@ class SettingsManager(private val context: Context) {
 
     val ffToggleKey: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[FF_TOGGLE_KEY] ?: -1
+    }
+
+    val lockLandscape: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[LOCK_LANDSCAPE] ?: false
     }
 
     suspend fun setHideButtons(hidden: Boolean) {
@@ -78,6 +83,12 @@ class SettingsManager(private val context: Context) {
     suspend fun setFfToggleKey(keyCode: Int) {
         context.dataStore.edit { prefs ->
             prefs[FF_TOGGLE_KEY] = keyCode
+        }
+    }
+
+    suspend fun setLockLandscape(locked: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[LOCK_LANDSCAPE] = locked
         }
     }
 }

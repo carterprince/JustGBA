@@ -48,12 +48,14 @@ fun SettingsDialog(
     ffSpeed: Float,
     muteFfAudio: Boolean,
     showFps: Boolean,
+    lockLandscape: Boolean,
     ffHoldKey: Int,
     ffToggleKey: Int,
     onHideButtonsChange: (Boolean) -> Unit,
     onFfSpeedChange: (Float) -> Unit,
     onMuteFfAudioChange: (Boolean) -> Unit,
     onShowFpsChange: (Boolean) -> Unit,
+    onLockLandscapeChange: (Boolean) -> Unit,
     onFfHoldKeyChange: (Int) -> Unit,
     onFfToggleKeyChange: (Int) -> Unit,
     onResume: () -> Unit,
@@ -165,6 +167,15 @@ fun SettingsDialog(
                 ) {
                     Text("Show FPS Counter")
                     Switch(checked = showFps, onCheckedChange = onShowFpsChange)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Lock to Landscape")
+                    Switch(checked = lockLandscape, onCheckedChange = onLockLandscapeChange)
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

@@ -6,19 +6,18 @@ JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and
 
 ## Features
 
-- Saves
-- Controller support (tested with Xbox, broader support is planned)
 - Fast Forwarding (1.25x, 1.5x, 2x, up to 8x and Max)
 - Optional Fast Forward toggle and press to Fast Forward buttons
+- Controller support (tested with Xbox, broader support is planned)
+- Portrait/Landscape mode
+- Saves
 - FPS Counter
-- On-screen buttons
 
 ## TODO
 
-- Portrait mode
-- Make sure Android Intents is working
 - Export saves
-- Rebinding buttons
+- Better on-screen buttons
+- Rebinding inputs
 - Some kind of Recently played library/interface in the main menu
 
 ## Build

@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -70,6 +71,8 @@ fun GameScreen(
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
     val triggerStates = remember { booleanArrayOf(false, false) }
 
     DisposableEffect(view) {
@@ -132,6 +135,7 @@ fun GameScreen(
     val ffSpeed by settingsManager.ffSpeed.collectAsState(1f)
     val muteFfAudio by settingsManager.muteFfAudio.collectAsState(false)
     val showFps by settingsManager.showFps.collectAsState(false)
+    val lockLandscape by settingsManager.lockLandscape.collectAsState(false)
     val ffHoldKey by settingsManager.ffHoldKey.collectAsState(-1)
     val ffToggleKey by settingsManager.ffToggleKey.collectAsState(-1)
 
@@ -214,7 +218,7 @@ fun GameScreen(
             },
             modifier = Modifier
                 .fillMaxSize()
-                .aspectRatio(3f / 2f, matchHeightConstraintsFirst = true)
+                .aspectRatio(3f / 2f, matchHeightConstraintsFirst = isLandscape)
         )
 
         Row(
@@ -265,6 +269,7 @@ fun GameScreen(
             ffSpeed = ffSpeed,
             muteFfAudio = muteFfAudio,
             showFps = showFps,
+            lockLandscape = lockLandscape,
             ffHoldKey = ffHoldKey,
             ffToggleKey = ffToggleKey,
             onHideButtonsChange = { hidden ->
@@ -286,6 +291,9 @@ fun GameScreen(
             },
             onShowFpsChange = { show ->
                 scope.launch { settingsManager.setShowFps(show) }
+            },
+            onLockLandscapeChange = { locked ->
+                scope.launch { settingsManager.setLockLandscape(locked) }
             },
             onFfHoldKeyChange = { keyCode ->
                 scope.launch { settingsManager.setFfHoldKey(keyCode) }

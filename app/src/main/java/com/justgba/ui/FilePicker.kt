@@ -54,7 +54,7 @@ fun FilePicker(
         Spacer(Modifier.height(48.dp))
         Button(
             onClick = {
-                launcher.launch(arrayOf("application/octet-stream", "application/gba"))
+                launcher.launch(arrayOf("application/octet-stream", "application/gba", "application/zip", "application/x-zip-compressed"))
             },
             modifier = Modifier.widthIn(min = 240.dp)
         ) {
@@ -62,7 +62,7 @@ fun FilePicker(
         }
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "Supports .gba, .bin, .agb files",
+            text = "Supports .gba, .bin, .agb, .zip files",
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -1,24 +1,31 @@
 package com.justgba
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.justgba.audio.AudioEngine
+import kotlinx.coroutines.launch
 import com.justgba.emulator.EmulatorThread
 import com.justgba.emulator.NativeBridge
 import com.justgba.settings.SettingsManager
 import com.justgba.ui.FilePicker
 import com.justgba.ui.GameScreen
 import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipFile
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -34,6 +41,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsManager = SettingsManager(applicationContext)
+
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                settingsManager.lockLandscape.collect { locked ->
+                    requestedOrientation = if (locked) {
+                        ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
+                    } else {
+                        ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    }
+                }
+            }
+        }
 
         handleIntent(intent)
 
@@ -130,6 +149,11 @@ class MainActivity : ComponentActivity() {
                 inputStream.copyTo(output)
             }
             inputStream.close()
+
+            if (originalName.lowercase().endsWith(".zip")) {
+                return extractRomFromZip(cacheFile)
+            }
+
             return cacheFile.absolutePath
         } catch (e: Exception) {
             Log.e(TAG, "Failed to resolve ROM path", e)
@@ -151,6 +175,36 @@ class MainActivity : ComponentActivity() {
             }
         } catch (_: Exception) {}
         return uri.lastPathSegment ?: "rom.gba"
+    }
+
+    private val romExtensions = setOf("gba", "bin", "agb")
+
+    private fun extractRomFromZip(zipFile: File): String? {
+        try {
+            ZipFile(zipFile).use { zip ->
+                val entry = zip.entries().asSequence()
+                    .firstOrNull { e ->
+                        !e.isDirectory &&
+                            romExtensions.contains(e.name.substringAfterLast('.').lowercase())
+                    } ?: run {
+                    Log.e(TAG, "No ROM file found in zip archive")
+                    return null
+                }
+
+                val outputName = File(entry.name).name
+                val outputFile = File(cacheDir, outputName)
+                zip.getInputStream(entry).use { input ->
+                    FileOutputStream(outputFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Log.i(TAG, "Extracted ${entry.name} from zip to $outputFile")
+                return outputFile.absolutePath
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to extract ROM from zip", e)
+            return null
+        }
     }
 
     private fun startEmulation(romPath: String, savePath: String) {
