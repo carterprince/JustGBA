@@ -54,7 +54,7 @@ class EmulatorThread(
     private fun runLoop() {
         var lastFrameTime = System.nanoTime()
         var lastRenderTime = System.nanoTime()
-        var frameCounter = 0
+        var renderAccumulator = 0.0
         var framesEmulated = 0
         var lastFpsTime = System.currentTimeMillis()
 
@@ -92,10 +92,14 @@ class EmulatorThread(
             } else {
                 // Fast Forward Active
                 if (ffSpeedMultiplier > 0) {
-                    // Fixed Multiplier (e.g., 2x, 3x)
-                    val multiplier = ffSpeedMultiplier.toInt()
-                    frameCounter = (frameCounter + 1) % multiplier
-                    val shouldRender = (frameCounter == 0)
+                    renderAccumulator += (1.0 / ffSpeedMultiplier)
+
+                    val shouldRender = if (renderAccumulator >= 1.0) {
+                        renderAccumulator -= 1.0
+                        true
+                    } else {
+                        false
+                    }
 
                     NativeBridge.nativeSetSkipRender(!shouldRender)
                     NativeBridge.nativeRunFrame()

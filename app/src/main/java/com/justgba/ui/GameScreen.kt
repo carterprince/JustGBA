@@ -1,12 +1,9 @@
 package com.justgba.ui
 
-import android.os.SystemClock
-import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -45,6 +42,7 @@ import com.justgba.emulator.NativeBridge
 import com.justgba.input.GbaButtons
 import com.justgba.input.InputState
 import com.justgba.input.VirtualGamepad
+import com.justgba.input.createJoystickMotionListener
 import com.justgba.settings.SettingsManager
 import kotlinx.coroutines.launch
 
@@ -61,49 +59,16 @@ fun GameScreen(
     val triggerStates = remember { booleanArrayOf(false, false) }
 
     DisposableEffect(view) {
-        val listener = View.OnGenericMotionListener { _, ev ->
-            if ((ev.source and InputDevice.SOURCE_CLASS_JOYSTICK) != 0 && ev.action == MotionEvent.ACTION_MOVE) {
-                val lTrigger = maxOf(
-                    ev.getAxisValue(MotionEvent.AXIS_LTRIGGER),
-                    ev.getAxisValue(MotionEvent.AXIS_BRAKE),
-                    ev.getAxisValue(MotionEvent.AXIS_Z)
-                )
-                val rTrigger = maxOf(
-                    ev.getAxisValue(MotionEvent.AXIS_RTRIGGER),
-                    ev.getAxisValue(MotionEvent.AXIS_GAS),
-                    ev.getAxisValue(MotionEvent.AXIS_RZ)
-                )
-                val time = SystemClock.uptimeMillis()
+        val listener = view.createJoystickMotionListener(triggerStates) { ev ->
+            val x = ev.getAxisValue(MotionEvent.AXIS_X)
+            val y = ev.getAxisValue(MotionEvent.AXIS_Y)
+            val hatX = ev.getAxisValue(MotionEvent.AXIS_HAT_X)
+            val hatY = ev.getAxisValue(MotionEvent.AXIS_HAT_Y)
 
-                if (lTrigger > 0.5f && !triggerStates[0]) {
-                    triggerStates[0] = true
-                    view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BUTTON_L2, 0))
-                } else if (lTrigger < 0.2f && triggerStates[0]) {
-                    triggerStates[0] = false
-                    view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BUTTON_L2, 0))
-                }
-
-                if (rTrigger > 0.5f && !triggerStates[1]) {
-                    triggerStates[1] = true
-                    view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BUTTON_R2, 0))
-                } else if (rTrigger < 0.2f && triggerStates[1]) {
-                    triggerStates[1] = false
-                    view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BUTTON_R2, 0))
-                }
-
-                val x = ev.getAxisValue(MotionEvent.AXIS_X)
-                val y = ev.getAxisValue(MotionEvent.AXIS_Y)
-                val hatX = ev.getAxisValue(MotionEvent.AXIS_HAT_X)
-                val hatY = ev.getAxisValue(MotionEvent.AXIS_HAT_Y)
-
-                InputState.setButton(0, GbaButtons.LEFT, x < -0.5f || hatX < -0.5f)
-                InputState.setButton(0, GbaButtons.RIGHT, x > 0.5f || hatX > 0.5f)
-                InputState.setButton(0, GbaButtons.UP, y < -0.5f || hatY < -0.5f)
-                InputState.setButton(0, GbaButtons.DOWN, y > 0.5f || hatY > 0.5f)
-                true
-            } else {
-                false
-            }
+            InputState.setButton(0, GbaButtons.LEFT, x < -0.5f || hatX < -0.5f)
+            InputState.setButton(0, GbaButtons.RIGHT, x > 0.5f || hatX > 0.5f)
+            InputState.setButton(0, GbaButtons.UP, y < -0.5f || hatY < -0.5f)
+            InputState.setButton(0, GbaButtons.DOWN, y > 0.5f || hatY > 0.5f)
         }
         view.setOnGenericMotionListener(listener)
         onDispose {
@@ -141,55 +106,22 @@ fun GameScreen(
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        AndroidView(
-            factory = { ctx ->
-                SurfaceView(ctx).apply {
-                    holder.addCallback(object : SurfaceHolder.Callback {
-                        override fun surfaceCreated(holder: SurfaceHolder) {
-                            NativeBridge.nativeSetSurface(holder.surface)
-                        }
-                        override fun surfaceChanged(
-                            holder: SurfaceHolder, format: Int, w: Int, h: Int
-                        ) {}
-                        override fun surfaceDestroyed(holder: SurfaceHolder) {
-                            NativeBridge.nativeSetSurface(null)
-                        }
-                    })
-                    setOnKeyListener { _, keyCode, event ->
-                        if (keyCode == ffHoldKey && ffHoldKey != -1) {
-                            when (event.action) {
-                                KeyEvent.ACTION_DOWN -> {
-                                    isFastForwarding = true
-                                    emulatorThread?.fastForward = true
-                                }
-                                KeyEvent.ACTION_UP -> {
-                                    isFastForwarding = false
-                                    emulatorThread?.fastForward = false
-                                }
-                            }
-                            return@setOnKeyListener true
-                        }
-                        if (keyCode == ffToggleKey && ffToggleKey != -1) {
-                            if (event.action == KeyEvent.ACTION_DOWN) {
-                                isFastForwarding = !isFastForwarding
-                                emulatorThread?.fastForward = isFastForwarding
-                            }
-                            return@setOnKeyListener true
-                        }
-                        val gbaKey = mapKeyToGba(keyCode)
-                            ?: return@setOnKeyListener false
-                        when (event.action) {
-                            KeyEvent.ACTION_DOWN ->
-                                InputState.setButton(0, gbaKey, true)
-                            KeyEvent.ACTION_UP ->
-                                InputState.setButton(0, gbaKey, false)
-                        }
-                        true
-                    }
-                    isFocusable = true
-                    isFocusableInTouchMode = true
-                    requestFocus()
-                }
+        EmulatorSurface(
+            isLandscape = isLandscape,
+            ffHoldKey = ffHoldKey,
+            ffToggleKey = ffToggleKey,
+            emulatorThread = emulatorThread,
+            onFastForwardDown = {
+                isFastForwarding = true
+                emulatorThread?.fastForward = true
+            },
+            onFastForwardUp = {
+                isFastForwarding = false
+                emulatorThread?.fastForward = false
+            },
+            onFastForwardToggle = {
+                isFastForwarding = !isFastForwarding
+                emulatorThread?.fastForward = isFastForwarding
             },
             modifier = Modifier
                 .fillMaxSize()
@@ -313,4 +245,64 @@ private fun mapKeyToGba(keyCode: Int): Int? {
         KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BUTTON_START -> GbaButtons.START
         else -> null
     }
+}
+
+@Composable
+private fun EmulatorSurface(
+    isLandscape: Boolean,
+    ffHoldKey: Int,
+    ffToggleKey: Int,
+    emulatorThread: EmulatorThread?,
+    onFastForwardDown: () -> Unit,
+    onFastForwardUp: () -> Unit,
+    onFastForwardToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AndroidView(
+        factory = { ctx ->
+            SurfaceView(ctx).apply {
+                holder.addCallback(object : SurfaceHolder.Callback {
+                    override fun surfaceCreated(holder: SurfaceHolder) {
+                        NativeBridge.nativeSetSurface(holder.surface)
+                    }
+                    override fun surfaceChanged(
+                        holder: SurfaceHolder, format: Int, w: Int, h: Int
+                    ) {}
+                    override fun surfaceDestroyed(holder: SurfaceHolder) {
+                        NativeBridge.nativeSetSurface(null)
+                    }
+                })
+                isFocusable = true
+                isFocusableInTouchMode = true
+                requestFocus()
+            }
+        },
+        update = { view ->
+            view.setOnKeyListener { _, keyCode, event ->
+                if (keyCode == ffHoldKey && ffHoldKey != -1) {
+                    when (event.action) {
+                        KeyEvent.ACTION_DOWN -> onFastForwardDown()
+                        KeyEvent.ACTION_UP -> onFastForwardUp()
+                    }
+                    return@setOnKeyListener true
+                }
+                if (keyCode == ffToggleKey && ffToggleKey != -1) {
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        onFastForwardToggle()
+                    }
+                    return@setOnKeyListener true
+                }
+                val gbaKey = mapKeyToGba(keyCode)
+                    ?: return@setOnKeyListener false
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN ->
+                        InputState.setButton(0, gbaKey, true)
+                    KeyEvent.ACTION_UP ->
+                        InputState.setButton(0, gbaKey, false)
+                }
+                true
+            }
+        },
+        modifier = modifier,
+    )
 }

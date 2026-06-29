@@ -1,10 +1,6 @@
 package com.justgba.ui
 
-import android.os.SystemClock
-import android.view.InputDevice
 import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.View
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,6 +36,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import com.justgba.input.createJoystickMotionListener
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -70,40 +67,7 @@ fun SettingsDialog(
             val triggerStates = remember { booleanArrayOf(false, false) }
 
             DisposableEffect(view) {
-                val listener = View.OnGenericMotionListener { _, ev ->
-                    if ((ev.source and InputDevice.SOURCE_CLASS_JOYSTICK) != 0 && ev.action == MotionEvent.ACTION_MOVE) {
-                        val lTrigger = maxOf(
-                            ev.getAxisValue(MotionEvent.AXIS_LTRIGGER),
-                            ev.getAxisValue(MotionEvent.AXIS_BRAKE),
-                            ev.getAxisValue(MotionEvent.AXIS_Z)
-                        )
-                        val rTrigger = maxOf(
-                            ev.getAxisValue(MotionEvent.AXIS_RTRIGGER),
-                            ev.getAxisValue(MotionEvent.AXIS_GAS),
-                            ev.getAxisValue(MotionEvent.AXIS_RZ)
-                        )
-                        val time = SystemClock.uptimeMillis()
-
-                        if (lTrigger > 0.5f && !triggerStates[0]) {
-                            triggerStates[0] = true
-                            view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BUTTON_L2, 0))
-                        } else if (lTrigger < 0.2f && triggerStates[0]) {
-                            triggerStates[0] = false
-                            view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BUTTON_L2, 0))
-                        }
-
-                        if (rTrigger > 0.5f && !triggerStates[1]) {
-                            triggerStates[1] = true
-                            view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BUTTON_R2, 0))
-                        } else if (rTrigger < 0.2f && triggerStates[1]) {
-                            triggerStates[1] = false
-                            view.dispatchKeyEvent(KeyEvent(time, time, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BUTTON_R2, 0))
-                        }
-                        true
-                    } else {
-                        false
-                    }
-                }
+                val listener = view.createJoystickMotionListener(triggerStates)
                 view.setOnGenericMotionListener(listener)
                 onDispose {
                     view.setOnGenericMotionListener(null)

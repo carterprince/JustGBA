@@ -176,53 +176,20 @@ private fun DPad(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.size(size)
     ) {
-        GameButtonT("▲", GbaButtons.UP, { onUp() }, { onRelease(GbaButtons.UP) },
+        GameButton("▲", GbaButtons.UP, { onUp() }, { onRelease(GbaButtons.UP) },
             Modifier.size(btnSize))
         Row(
             horizontalArrangement = Arrangement.spacedBy(gap),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GameButtonT("◄", GbaButtons.LEFT, { onLeft() }, { onRelease(GbaButtons.LEFT) },
+            GameButton("◄", GbaButtons.LEFT, { onLeft() }, { onRelease(GbaButtons.LEFT) },
                 Modifier.size(btnSize))
             Box(modifier = Modifier.size(btnSize))
-            GameButtonT("►", GbaButtons.RIGHT, { onRight() }, { onRelease(GbaButtons.RIGHT) },
+            GameButton("►", GbaButtons.RIGHT, { onRight() }, { onRelease(GbaButtons.RIGHT) },
                 Modifier.size(btnSize))
         }
-        GameButtonT("▼", GbaButtons.DOWN, { onDown() }, { onRelease(GbaButtons.DOWN) },
+        GameButton("▼", GbaButtons.DOWN, { onDown() }, { onRelease(GbaButtons.DOWN) },
             Modifier.size(btnSize))
-    }
-}
-
-@Composable
-private fun GameButtonT(
-    text: String,
-    id: Int,
-    onDown: () -> Unit,
-    onUp: (Int) -> Unit,
-    modifier: Modifier = Modifier.size(48.dp),
-    bg: Color = Color(0xFF555555),
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .clip(CircleShape)
-            .background(bg)
-            .pointerInput(id) {
-                detectTapGestures(
-                    onPress = {
-                        onDown()
-                        awaitRelease()
-                        onUp(id)
-                    }
-                )
-            }
-    ) {
-        Text(
-            text, color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
@@ -248,7 +215,7 @@ private fun GameButton(
     text: String,
     id: Int,
     onDown: () -> Unit,
-    onUp: () -> Unit,
+    onUp: (Int) -> Unit,
     modifier: Modifier = Modifier.size(48.dp),
     bg: Color = Color(0xFF555555),
 ) {
@@ -262,7 +229,7 @@ private fun GameButton(
                     onPress = {
                         onDown()
                         awaitRelease()
-                        onUp()
+                        onUp(id)
                     }
                 )
             }

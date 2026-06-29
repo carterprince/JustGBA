@@ -14,17 +14,21 @@ class AudioEngine {
         private const val CHANNELS = AudioFormat.CHANNEL_OUT_STEREO
         private const val ENCODING = AudioFormat.ENCODING_PCM_16BIT
         private const val BUFFER_MS = 80
+        private const val READ_BUF_SIZE = 4096
+        private const val CONVERTED_BUF_SIZE = 8192
+        private const val LEFTOVER_BUF_SIZE = 8192
+        private const val EMULATOR_SAMPLE_RATE = 65536.0
     }
 
     private var audioTrack: AudioTrack? = null
-    private val readBuf = ShortArray(4096)
-    private val convertedBuf = ShortArray(8192)
+    private val readBuf = ShortArray(READ_BUF_SIZE)
+    private val convertedBuf = ShortArray(CONVERTED_BUF_SIZE)
     private var fastForward = false
     private var ffAudioMode = 1
     private var resamplePhase = 0.0
     private var lastSampleL = 0.toShort()
     private var lastSampleR = 0.toShort()
-    private val leftoverBuf = ShortArray(8192)
+    private val leftoverBuf = ShortArray(LEFTOVER_BUF_SIZE)
     private var leftoverFrames = 0
 
     fun init(): Boolean {
@@ -150,7 +154,7 @@ class AudioEngine {
     }
 
     private fun sampleRateConvert65536to48000(input: ShortArray, inputFrames: Int): Int {
-        val ratio = 65536.0 / 48000.0
+        val ratio = EMULATOR_SAMPLE_RATE / SAMPLE_RATE.toDouble()
         var writeIdx = 0
 
         while (writeIdx < convertedBuf.size / 2 && resamplePhase.toInt() < inputFrames) {
