@@ -20,7 +20,7 @@ class AudioEngine {
     private val readBuf = ShortArray(4096)
     private val convertedBuf = ShortArray(8192)
     private var fastForward = false
-    private var muteFfAudio = true
+    private var ffAudioMode = 1
     private var resamplePhase = 0.0
     private var lastSampleL = 0.toShort()
     private var lastSampleR = 0.toShort()
@@ -62,12 +62,24 @@ class AudioEngine {
         return true
     }
 
-    fun setFastForward(enabled: Boolean) {
+    fun setFastForward(enabled: Boolean, speedMultiplier: Float) {
         fastForward = enabled
+        val track = audioTrack ?: return
+
+        try {
+            if (enabled && speedMultiplier > 1f && ffAudioMode == 1) {
+                val safeMultiplier = minOf(speedMultiplier, 4f)
+                track.playbackRate = (SAMPLE_RATE * safeMultiplier).toInt()
+            } else {
+                track.playbackRate = SAMPLE_RATE
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to set playback rate", e)
+        }
     }
 
-    fun setMuteFfAudio(mute: Boolean) {
-        muteFfAudio = mute
+    fun setFfAudioMode(mode: Int) {
+        ffAudioMode = mode
     }
 
     fun pause() {
@@ -95,7 +107,7 @@ class AudioEngine {
             val toRead = min(readable, readBuf.size)
             val samples = NativeBridge.nativeReadAudio(readBuf, toRead)
             
-            if (fastForward && muteFfAudio) {
+            if (fastForward && ffAudioMode == 0) {
                 leftoverFrames = 0 // Clear any old audio
                 return
             }

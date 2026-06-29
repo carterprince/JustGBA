@@ -117,7 +117,7 @@ fun GameScreen(
     val scope = rememberCoroutineScope()
     val hideButtons by settingsManager.hideButtons.collectAsState(false)
     val ffSpeed by settingsManager.ffSpeed.collectAsState(1f)
-    val muteFfAudio by settingsManager.muteFfAudio.collectAsState(false)
+    val ffAudioMode by settingsManager.ffAudioMode.collectAsState(1)
     val showFps by settingsManager.showFps.collectAsState(false)
     val lockLandscape by settingsManager.lockLandscape.collectAsState(false)
     val ffHoldKey by settingsManager.ffHoldKey.collectAsState(-1)
@@ -128,9 +128,9 @@ fun GameScreen(
         emulatorThread?.ffSpeedMultiplier = ffSpeed
     }
 
-    LaunchedEffect(muteFfAudio) {
-        NativeBridge.nativeSetMuteFastForwardAudio(muteFfAudio)
-        emulatorThread?.muteFfAudio = muteFfAudio
+    LaunchedEffect(ffAudioMode) {
+        NativeBridge.nativeSetMuteFastForwardAudio(ffAudioMode == 0)
+        emulatorThread?.ffAudioMode = ffAudioMode
     }
 
     val currentFps by (emulatorThread?.fps ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
@@ -250,7 +250,7 @@ fun GameScreen(
         SettingsDialog(
             hideButtons = hideButtons,
             ffSpeed = ffSpeed,
-            muteFfAudio = muteFfAudio,
+            ffAudioMode = ffAudioMode,
             showFps = showFps,
             lockLandscape = lockLandscape,
             ffHoldKey = ffHoldKey,
@@ -265,11 +265,11 @@ fun GameScreen(
                     emulatorThread?.ffSpeedMultiplier = speed
                 }
             },
-            onMuteFfAudioChange = { mute ->
+            onFfAudioModeChange = { mode ->
                 scope.launch {
-                    settingsManager.setMuteFfAudio(mute)
-                    NativeBridge.nativeSetMuteFastForwardAudio(mute)
-                    emulatorThread?.muteFfAudio = mute
+                    settingsManager.setFfAudioMode(mode)
+                    NativeBridge.nativeSetMuteFastForwardAudio(mode == 0)
+                    emulatorThread?.ffAudioMode = mode
                 }
             },
             onShowFpsChange = { show ->

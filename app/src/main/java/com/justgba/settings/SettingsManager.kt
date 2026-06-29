@@ -15,7 +15,7 @@ class SettingsManager(private val context: Context) {
     companion object {
         val HIDE_BUTTONS = booleanPreferencesKey("hide_buttons")
         val FF_SPEED = floatPreferencesKey("ff_speed")
-        val MUTE_FF_AUDIO = booleanPreferencesKey("mute_ff_audio")
+        val FF_AUDIO_MODE = intPreferencesKey("ff_audio_mode")
         val SHOW_FPS = booleanPreferencesKey("show_fps")
         val FF_HOLD_KEY = intPreferencesKey("ff_hold_key")
         val FF_TOGGLE_KEY = intPreferencesKey("ff_toggle_key")
@@ -30,8 +30,8 @@ class SettingsManager(private val context: Context) {
         prefs[FF_SPEED] ?: 1f
     }
 
-    val muteFfAudio: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[MUTE_FF_AUDIO] ?: false
+    val ffAudioMode: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[FF_AUDIO_MODE] ?: 1
     }
 
     val showFps: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -62,9 +62,9 @@ class SettingsManager(private val context: Context) {
         }
     }
 
-    suspend fun setMuteFfAudio(mute: Boolean) {
+    suspend fun setFfAudioMode(mode: Int) {
         context.dataStore.edit { prefs ->
-            prefs[MUTE_FF_AUDIO] = mute
+            prefs[FF_AUDIO_MODE] = mode
         }
     }
 

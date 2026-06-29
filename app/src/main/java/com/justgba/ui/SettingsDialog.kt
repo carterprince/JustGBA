@@ -46,14 +46,14 @@ import androidx.compose.ui.unit.dp
 fun SettingsDialog(
     hideButtons: Boolean,
     ffSpeed: Float,
-    muteFfAudio: Boolean,
+    ffAudioMode: Int,
     showFps: Boolean,
     lockLandscape: Boolean,
     ffHoldKey: Int,
     ffToggleKey: Int,
     onHideButtonsChange: (Boolean) -> Unit,
     onFfSpeedChange: (Float) -> Unit,
-    onMuteFfAudioChange: (Boolean) -> Unit,
+    onFfAudioModeChange: (Int) -> Unit,
     onShowFpsChange: (Boolean) -> Unit,
     onLockLandscapeChange: (Boolean) -> Unit,
     onFfHoldKeyChange: (Int) -> Unit,
@@ -152,13 +152,26 @@ fun SettingsDialog(
                     }
                 }
 
-                Row(
+                Text("Fast Forward Audio", style = MaterialTheme.typography.bodyMedium)
+
+                val audioModes = listOf(
+                    1 to "Increase Pitch",
+                    2 to "No Correction",
+                    0 to "Muted",
+                )
+
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text("Mute during Fast-Forward")
-                    Switch(checked = muteFfAudio, onCheckedChange = onMuteFfAudioChange)
+                    audioModes.forEach { (value, label) ->
+                        FilterChip(
+                            selected = ffAudioMode == value,
+                            onClick = { onFfAudioModeChange(value) },
+                            label = { Text(label) },
+                        )
+                    }
                 }
 
                 Row(

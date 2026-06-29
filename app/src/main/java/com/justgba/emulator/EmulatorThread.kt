@@ -22,7 +22,7 @@ class EmulatorThread(
     @Volatile var fastForward = false
     @Volatile var paused = false
     @Volatile var ffSpeedMultiplier = 0f
-    @Volatile var muteFfAudio = true
+    @Volatile var ffAudioMode = 1
 
     private val _fps = MutableStateFlow(0)
     val fps: StateFlow<Int> = _fps.asStateFlow()
@@ -67,8 +67,8 @@ class EmulatorThread(
                 }
             }
 
-            audioEngine.setFastForward(fastForward)
-            audioEngine.setMuteFfAudio(muteFfAudio)
+            audioEngine.setFastForward(fastForward, ffSpeedMultiplier)
+            audioEngine.setFfAudioMode(ffAudioMode)
             NativeBridge.nativeSetInput(InputState.getPlayer1Mask())
             audioEngine.tick()
 

@@ -62,7 +62,7 @@ fun MainMenu(
 
     val hideButtons by settingsManager.hideButtons.collectAsState(false)
     val ffSpeed by settingsManager.ffSpeed.collectAsState(1f)
-    val muteFfAudio by settingsManager.muteFfAudio.collectAsState(false)
+    val ffAudioMode by settingsManager.ffAudioMode.collectAsState(1)
     val showFps by settingsManager.showFps.collectAsState(false)
     val lockLandscape by settingsManager.lockLandscape.collectAsState(false)
     val ffHoldKey by settingsManager.ffHoldKey.collectAsState(-1)
@@ -171,7 +171,7 @@ fun MainMenu(
         SettingsDialog(
             hideButtons = hideButtons,
             ffSpeed = ffSpeed,
-            muteFfAudio = muteFfAudio,
+            ffAudioMode = ffAudioMode,
             showFps = showFps,
             lockLandscape = lockLandscape,
             ffHoldKey = ffHoldKey,
@@ -182,8 +182,8 @@ fun MainMenu(
             onFfSpeedChange = { speed ->
                 scope.launch { settingsManager.setFfSpeed(speed) }
             },
-            onMuteFfAudioChange = { mute ->
-                scope.launch { settingsManager.setMuteFfAudio(mute) }
+            onFfAudioModeChange = { mode ->
+                scope.launch { settingsManager.setFfAudioMode(mode) }
             },
             onShowFpsChange = { show ->
                 scope.launch { settingsManager.setShowFps(show) }
