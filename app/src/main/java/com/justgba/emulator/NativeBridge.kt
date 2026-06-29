@@ -1,7 +1,5 @@
 package com.justgba.emulator
 
-import java.nio.ByteBuffer
-
 object NativeBridge {
     init {
         System.loadLibrary("justgba")
@@ -22,15 +20,6 @@ object NativeBridge {
     external fun nativeSetMuteFastForwardAudio(mute: Boolean)
     external fun nativeBatterySave(savePath: String): Boolean
     external fun nativeBatteryLoad(savePath: String): Boolean
+    external fun nativeSetSurface(surface: android.view.Surface?)
     external fun nativeDeinit()
-
-    private external fun nativeGetVideoBufferImpl(): ByteBuffer?
-    private var cachedVideoBuffer: ByteBuffer? = null
-
-    fun getVideoBuffer(): ByteBuffer? {
-        if (cachedVideoBuffer == null) {
-            cachedVideoBuffer = nativeGetVideoBufferImpl()
-        }
-        return cachedVideoBuffer
-    }
 }

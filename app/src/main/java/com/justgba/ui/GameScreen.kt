@@ -1,9 +1,5 @@
 package com.justgba.ui
 
-import android.graphics.Bitmap
-import android.graphics.Paint
-import android.graphics.Rect
-import android.graphics.RectF
 import android.os.SystemClock
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -17,24 +13,17 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -48,8 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Text
 import androidx.compose.ui.viewinterop.AndroidView
 import com.justgba.emulator.EmulatorThread
 import com.justgba.emulator.NativeBridge
@@ -57,11 +46,7 @@ import com.justgba.input.GbaButtons
 import com.justgba.input.InputState
 import com.justgba.input.VirtualGamepad
 import com.justgba.settings.SettingsManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun GameScreen(
@@ -126,7 +111,6 @@ fun GameScreen(
         }
     }
 
-    var surfaceHolder by remember { mutableStateOf<SurfaceHolder?>(null) }
     var isFastForwarding by remember { mutableStateOf(false) }
     var isMenuOpen by remember { mutableStateOf(false) }
 
@@ -149,16 +133,7 @@ fun GameScreen(
         emulatorThread?.muteFfAudio = muteFfAudio
     }
 
-    val bitmap = remember {
-        Bitmap.createBitmap(240, 160, Bitmap.Config.RGB_565)
-    }
-    val srcRect = remember { Rect(0, 0, 240, 160) }
-    val dstRect = remember { RectF() }
-    val frameChannel = remember { Channel<Unit>(Channel.CONFLATED) }
-
-    LaunchedEffect(emulatorThread) {
-        emulatorThread?.frameChannel = frameChannel
-    }
+    val currentFps by (emulatorThread?.fps ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
 
     Box(
         modifier = modifier
@@ -171,13 +146,13 @@ fun GameScreen(
                 SurfaceView(ctx).apply {
                     holder.addCallback(object : SurfaceHolder.Callback {
                         override fun surfaceCreated(holder: SurfaceHolder) {
-                            surfaceHolder = holder
+                            NativeBridge.nativeSetSurface(holder.surface)
                         }
                         override fun surfaceChanged(
                             holder: SurfaceHolder, format: Int, w: Int, h: Int
                         ) {}
                         override fun surfaceDestroyed(holder: SurfaceHolder) {
-                            surfaceHolder = null
+                            NativeBridge.nativeSetSurface(null)
                         }
                     })
                     setOnKeyListener { _, keyCode, event ->
@@ -219,6 +194,14 @@ fun GameScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .aspectRatio(3f / 2f, matchHeightConstraintsFirst = isLandscape)
+        )
+
+        Text(
+            text = "FPS: $currentFps",
+            color = Color.Yellow,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(8.dp)
         )
 
         Row(
@@ -313,90 +296,7 @@ fun GameScreen(
         )
     }
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.Default) {
-            val fpsTextPaint = Paint().apply {
-                color = android.graphics.Color.WHITE
-                textSize = 36f
-                isAntiAlias = true
-            }
-            val fpsBgPaint = Paint().apply {
-                color = 0x80000000.toInt()
-                style = Paint.Style.FILL
-            }
 
-            var frameCount = 0L
-            var fpsStartTime = System.nanoTime()
-            var currentFps = 0f
-
-            while (isActive) {
-                emulatorThread?.requestFrame()
-                frameChannel.receive()
-
-                val holder = surfaceHolder
-                if (holder != null && NativeBridge.nativeFrameReady()) {
-                    val buf = NativeBridge.getVideoBuffer()
-                    if (buf != null) {
-                        val canvas = holder.lockHardwareCanvas() ?: holder.lockCanvas()
-                        if (canvas != null) {
-                            try {
-                                if (emulatorThread != null) {
-                                    synchronized(emulatorThread.renderLock) {
-                                        buf.rewind()
-                                        bitmap.copyPixelsFromBuffer(buf)
-                                    }
-                                } else {
-                                    buf.rewind()
-                                    bitmap.copyPixelsFromBuffer(buf)
-                                }
-
-                                val cw = canvas.width.toFloat()
-                                val ch = canvas.height.toFloat()
-                                val gameAspect = 240f / 160f
-                                val cvAspect = cw / ch
-
-                                if (cvAspect > gameAspect) {
-                                    val w = ch * gameAspect
-                                    val x = (cw - w) / 2f
-                                    dstRect.set(x, 0f, x + w, ch)
-                                } else {
-                                    val h = cw / gameAspect
-                                    val y = (ch - h) / 2f
-                                    dstRect.set(0f, y, cw, y + h)
-                                }
-
-                                canvas.drawColor(Color.Black.toArgb())
-                                canvas.drawBitmap(bitmap, srcRect, dstRect, null)
-
-                                if (showFps) {
-                                    frameCount++
-                                    val elapsed = System.nanoTime() - fpsStartTime
-                                    if (elapsed >= 1_000_000_000L) {
-                                        currentFps = frameCount.toFloat() / (elapsed / 1_000_000_000f)
-                                        frameCount = 0L
-                                        fpsStartTime = System.nanoTime()
-                                    }
-                                    val text = "FPS: ${currentFps.toInt()}"
-                                    val textWidth = fpsTextPaint.measureText(text)
-                                    val padding = 12f
-                                    val textX = cw - textWidth - padding * 2 - 8f
-                                    val textY = padding + 32f
-                                    canvas.drawRoundRect(
-                                        textX - padding, textY - 32f,
-                                        textX + textWidth + padding, textY + 8f,
-                                        8f, 8f, fpsBgPaint
-                                    )
-                                    canvas.drawText(text, textX, textY, fpsTextPaint)
-                                }
-                            } finally {
-                                holder.unlockCanvasAndPost(canvas)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 private fun mapKeyToGba(keyCode: Int): Int? {

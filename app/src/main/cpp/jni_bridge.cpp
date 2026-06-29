@@ -6,6 +6,9 @@
 #include <atomic>
 #include <new>
 
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+
 #include <libretro.h>
 
 #define LOG_TAG "JustGBA-JNI"
@@ -40,9 +43,8 @@ static retro_environment_t      environ_cb          = nullptr;
 static constexpr int SCREEN_W = 240;
 static constexpr int SCREEN_H = 160;
 static constexpr int SCREEN_PITCH = 240;
-static constexpr size_t SCREEN_BUF_SIZE = SCREEN_PITCH * (SCREEN_H + 1) * 2;
 
-static uint16_t* video_buf      = nullptr;
+static ANativeWindow* native_window = nullptr;
 static int       video_width    = 0;
 static int       video_height   = 0;
 static size_t    video_pitch    = 0;
@@ -185,16 +187,40 @@ static bool environ_cb_func(unsigned cmd, void* data) {
 
 static void video_refresh_cb(const void* data, unsigned width,
                              unsigned height, size_t pitch) {
-    if (skip_render.load(std::memory_order_relaxed))
-        return;
-    if (!data || !video_buf)
-        return;
-    video_width  = width;
-    video_height = height;
-    video_pitch  = pitch;
-    size_t size  = height * pitch;
-    memcpy(video_buf, data, size);
-    frame_ready.store(true, std::memory_order_release);
+    if (skip_render.load(std::memory_order_relaxed) || !data || !native_window) return;
+
+    const int SCALE = 4;
+    unsigned out_width = width * SCALE;
+    unsigned out_height = height * SCALE;
+
+    ANativeWindow_setBuffersGeometry(native_window, out_width, out_height, WINDOW_FORMAT_RGB_565);
+
+    ANativeWindow_Buffer buffer;
+    if (ANativeWindow_lock(native_window, &buffer, nullptr) == 0) {
+        const uint8_t* src = static_cast<const uint8_t*>(data);
+        uint8_t* dst = static_cast<uint8_t*>(buffer.bits);
+
+        size_t dst_stride_bytes = buffer.stride * 2;
+
+        for (unsigned y = 0; y < height; y++) {
+            const uint16_t* src_row = reinterpret_cast<const uint16_t*>(src + (y * pitch));
+
+            uint16_t* dst_row = reinterpret_cast<uint16_t*>(dst + (y * SCALE) * dst_stride_bytes);
+            for (unsigned x = 0; x < width; x++) {
+                uint16_t pixel = src_row[x];
+                for (int s = 0; s < SCALE; s++) {
+                    dst_row[x * SCALE + s] = pixel;
+                }
+            }
+
+            for (int s = 1; s < SCALE; s++) {
+                uint8_t* next_dst_row = dst + (y * SCALE + s) * dst_stride_bytes;
+                memcpy(next_dst_row, dst_row, out_width * 2);
+            }
+        }
+
+        ANativeWindow_unlockAndPost(native_window);
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -265,13 +291,6 @@ Java_com_justgba_emulator_NativeBridge_nativeInit(
         env->ReleaseStringUTFChars(saveDirObj, sv);
     }
 
-    video_buf = (uint16_t*)malloc(SCREEN_BUF_SIZE);
-    if (!video_buf) {
-        LOGE("Failed to allocate video buffer");
-        return JNI_FALSE;
-    }
-    memset(video_buf, 0, SCREEN_BUF_SIZE);
-
     retro_set_environment(environ_cb_func);
     retro_set_video_refresh(video_refresh_cb);
     retro_set_audio_sample_batch(audio_batch_fn);
@@ -314,14 +333,6 @@ JNIEXPORT jboolean JNICALL
 Java_com_justgba_emulator_NativeBridge_nativeFrameReady(JNIEnv*, jclass) {
     return frame_ready.exchange(false, std::memory_order_acq_rel)
            ? JNI_TRUE : JNI_FALSE;
-}
-
-JNIEXPORT jobject JNICALL
-Java_com_justgba_emulator_NativeBridge_nativeGetVideoBufferImpl(
-    JNIEnv* env, jclass) {
-    if (!video_buf)
-        return nullptr;
-    return env->NewDirectByteBuffer(video_buf, SCREEN_BUF_SIZE);
 }
 
 JNIEXPORT jint JNICALL
@@ -451,13 +462,24 @@ Java_com_justgba_emulator_NativeBridge_nativeBatteryLoad(
 }
 
 JNIEXPORT void JNICALL
+Java_com_justgba_emulator_NativeBridge_nativeSetSurface(JNIEnv* env, jclass, jobject surface) {
+    if (native_window) {
+        ANativeWindow_release(native_window);
+        native_window = nullptr;
+    }
+    if (surface) {
+        native_window = ANativeWindow_fromSurface(env, surface);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_justgba_emulator_NativeBridge_nativeDeinit(JNIEnv*, jclass) {
     retro_unload_game();
     retro_deinit();
 
-    if (video_buf) {
-        free(video_buf);
-        video_buf = nullptr;
+    if (native_window) {
+        ANativeWindow_release(native_window);
+        native_window = nullptr;
     }
     frame_ready.store(false, std::memory_order_relaxed);
     audio_wpos.store(0, std::memory_order_relaxed);
