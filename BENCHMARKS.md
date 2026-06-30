@@ -1,9 +1,9 @@
 ### Performance Comparison
 
-| Emulator | Engine | Time (1M Loops) | it/s | Notes |
+| Emulator | Engine Type | Time (1M Loops) | it/s | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | **gpSP** *(RetroArch)* | JIT | 19.4s | ~51,546 | |
-| **JustGBA** | JIT | 19.4s | ~51,546 | |
+| **gpSP** *(JustGBA)* | JIT | 19.4s | ~51,546 | |
 | **ClassicBoy** | Interpreter | 1m 54.6s | ~8,726 | |
 | **NooDS** | Interpreter | 2m 12.8s | ~7,530 | |
 | **GBA.emu** | Interpreter | 2m 38.0s | ~6,329 | Speed hard-capped at 20x |
