@@ -79,6 +79,9 @@ void retro_set_input_poll(retro_input_poll_t cb);
 unsigned retro_api_version(void);
 void* retro_get_memory_data(unsigned id);
 size_t retro_get_memory_size(unsigned id);
+size_t retro_serialize_size(void);
+bool retro_serialize(void* data, size_t size);
+bool retro_unserialize(const void* data, size_t size);
 }
 
 /* ------------------------------------------------------------------ */
@@ -459,6 +462,95 @@ Java_com_justgba_emulator_NativeBridge_nativeBatteryLoad(
     fclose(f);
     env->ReleaseStringUTFChars(savePath, path);
     return (read > 0) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_justgba_emulator_NativeBridge_nativeStateSave(
+    JNIEnv* env, jclass, jstring savePath) {
+    const char* path = env->GetStringUTFChars(savePath, nullptr);
+    if (!path)
+        return JNI_FALSE;
+
+    size_t size = retro_serialize_size();
+    if (size == 0) {
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    void* buffer = malloc(size);
+    if (!buffer) {
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    bool ok = retro_serialize(buffer, size);
+    if (!ok) {
+        free(buffer);
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    FILE* f = fopen(path, "wb");
+    if (!f) {
+        free(buffer);
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    size_t written = fwrite(buffer, 1, size, f);
+    fclose(f);
+    free(buffer);
+    env->ReleaseStringUTFChars(savePath, path);
+    return (written == size) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_justgba_emulator_NativeBridge_nativeStateLoad(
+    JNIEnv* env, jclass, jstring savePath) {
+    const char* path = env->GetStringUTFChars(savePath, nullptr);
+    if (!path)
+        return JNI_FALSE;
+
+    size_t expected = retro_serialize_size();
+    if (expected == 0) {
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    FILE* f = fopen(path, "rb");
+    if (!f) {
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (file_size <= 0 || static_cast<size_t>(file_size) != expected) {
+        fclose(f);
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    void* buffer = malloc(expected);
+    if (!buffer) {
+        fclose(f);
+        env->ReleaseStringUTFChars(savePath, path);
+        return JNI_FALSE;
+    }
+
+    size_t read = fread(buffer, 1, expected, f);
+    fclose(f);
+
+    bool ok = false;
+    if (read == expected) {
+        ok = retro_unserialize(buffer, expected);
+    }
+
+    free(buffer);
+    env->ReleaseStringUTFChars(savePath, path);
+    return ok ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT void JNICALL

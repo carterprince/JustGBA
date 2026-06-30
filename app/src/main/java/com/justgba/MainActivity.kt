@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
     private var audioEngine: AudioEngine? = null
     private var emulatorThread: EmulatorThread? = null
     private var currentSavePath: String? = null
+    private var currentStatePath: String? = null
     private lateinit var settingsManager: SettingsManager
     private lateinit var recentRomsManager: RecentRomsManager
     private var currentRomPath by mutableStateOf<String?>(null)
@@ -69,12 +70,18 @@ class MainActivity : ComponentActivity() {
                         val path = resolveRomPath(uri)
                         if (path != null) {
                             val originalName = getOriginalFilename(uri)
+                            val baseName = File(originalName).nameWithoutExtension
                             val savePath = File(
                                 getExternalFilesDir(null) ?: filesDir,
-                                "${File(originalName).nameWithoutExtension}.sav"
+                                "$baseName.sav"
+                            ).absolutePath
+                            val statePath = File(
+                                getExternalFilesDir(null) ?: filesDir,
+                                "$baseName.state.auto"
                             ).absolutePath
                             currentSavePath = savePath
-                            startEmulation(path, savePath)
+                            currentStatePath = statePath
+                            startEmulation(path, savePath, statePath)
                             currentRomPath = path
                             lifecycleScope.launch {
                                 recentRomsManager.addOrUpdateEntry(
@@ -95,12 +102,18 @@ class MainActivity : ComponentActivity() {
                             resolveRomPath(Uri.parse(entry.uri))
                         }
                         if (path != null) {
+                            val baseName = File(entry.displayName).nameWithoutExtension
                             val savePath = File(
                                 getExternalFilesDir(null) ?: filesDir,
-                                "${File(entry.displayName).nameWithoutExtension}.sav"
+                                "$baseName.sav"
+                            ).absolutePath
+                            val statePath = File(
+                                getExternalFilesDir(null) ?: filesDir,
+                                "$baseName.state.auto"
                             ).absolutePath
                             currentSavePath = savePath
-                            startEmulation(path, savePath)
+                            currentStatePath = statePath
+                            startEmulation(path, savePath, statePath)
                             currentRomPath = path
                         }
                     },
@@ -134,12 +147,18 @@ class MainActivity : ComponentActivity() {
         val path = resolveRomPath(uri)
         if (path != null) {
             val originalName = getOriginalFilename(uri)
+            val baseName = File(originalName).nameWithoutExtension
             val savePath = File(
                 getExternalFilesDir(null) ?: filesDir,
-                "${File(originalName).nameWithoutExtension}.sav"
+                "$baseName.sav"
+            ).absolutePath
+            val statePath = File(
+                getExternalFilesDir(null) ?: filesDir,
+                "$baseName.state.auto"
             ).absolutePath
             currentSavePath = savePath
-            startEmulation(path, savePath)
+            currentStatePath = statePath
+            startEmulation(path, savePath, statePath)
             currentRomPath = path
             lifecycleScope.launch {
                 recentRomsManager.addOrUpdateEntry(
@@ -158,6 +177,7 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         emulatorThread?.pause()
         audioEngine?.pause()
+        currentStatePath?.let { NativeBridge.nativeStateSave(it) }
         currentSavePath?.let { NativeBridge.nativeBatterySave(it) }
     }
 
@@ -249,7 +269,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startEmulation(romPath: String, savePath: String) {
+    private fun startEmulation(romPath: String, savePath: String, statePath: String) {
         val sysDir = filesDir.absolutePath
         val saveDir = getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath
 
@@ -267,6 +287,11 @@ class MainActivity : ComponentActivity() {
         NativeBridge.nativeBatteryLoad(savePath)
         Log.i(TAG, "Battery save loaded from $savePath")
 
+        if (File(statePath).exists()) {
+            NativeBridge.nativeStateLoad(statePath)
+            Log.i(TAG, "Auto state loaded from $statePath")
+        }
+
         val audio = AudioEngine()
         if (!audio.init()) {
             Log.w(TAG, "AudioEngine init failed, continuing without audio")
@@ -279,12 +304,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun stopEmulation() {
-        currentSavePath?.let { NativeBridge.nativeBatterySave(it) }
         emulatorThread?.stop()
         emulatorThread = null
+        currentStatePath?.let { NativeBridge.nativeStateSave(it) }
+        currentSavePath?.let { NativeBridge.nativeBatterySave(it) }
         audioEngine?.release()
         audioEngine = null
         currentSavePath = null
+        currentStatePath = null
         try {
             NativeBridge.nativeDeinit()
             Log.i(TAG, "Emulation stopped")

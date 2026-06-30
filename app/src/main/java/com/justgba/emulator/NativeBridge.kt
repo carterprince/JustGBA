@@ -20,6 +20,8 @@ object NativeBridge {
     external fun nativeSetMuteFastForwardAudio(mute: Boolean)
     external fun nativeBatterySave(savePath: String): Boolean
     external fun nativeBatteryLoad(savePath: String): Boolean
+    external fun nativeStateSave(savePath: String): Boolean
+    external fun nativeStateLoad(savePath: String): Boolean
     external fun nativeSetSurface(surface: android.view.Surface?)
     external fun nativeDeinit()
 }

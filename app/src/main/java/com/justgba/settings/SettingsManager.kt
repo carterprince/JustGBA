@@ -20,6 +20,7 @@ class SettingsManager(private val context: Context) {
         val FF_HOLD_KEY = intPreferencesKey("ff_hold_key")
         val FF_TOGGLE_KEY = intPreferencesKey("ff_toggle_key")
         val LOCK_LANDSCAPE = booleanPreferencesKey("lock_landscape")
+        val LAST_FF_STATE = booleanPreferencesKey("last_ff_state")
     }
 
     val hideButtons: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -48,6 +49,10 @@ class SettingsManager(private val context: Context) {
 
     val lockLandscape: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[LOCK_LANDSCAPE] ?: false
+    }
+
+    val lastFfState: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[LAST_FF_STATE] ?: false
     }
 
     suspend fun setHideButtons(hidden: Boolean) {
@@ -89,6 +94,12 @@ class SettingsManager(private val context: Context) {
     suspend fun setLockLandscape(locked: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[LOCK_LANDSCAPE] = locked
+        }
+    }
+
+    suspend fun setLastFfState(state: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[LAST_FF_STATE] = state
         }
     }
 }

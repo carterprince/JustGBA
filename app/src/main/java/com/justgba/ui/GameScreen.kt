@@ -45,6 +45,7 @@ import com.justgba.input.VirtualGamepad
 import com.justgba.input.createJoystickMotionListener
 import com.justgba.settings.SettingsManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun GameScreen(
@@ -80,6 +81,21 @@ fun GameScreen(
     var isMenuOpen by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
+
+    val updateFfState = { newState: Boolean ->
+        isFastForwarding = newState
+        emulatorThread?.fastForward = newState
+        scope.launch { settingsManager.setLastFfState(newState) }
+    }
+
+    LaunchedEffect(Unit) {
+        val restored = settingsManager.lastFfState.first()
+        if (restored) {
+            isFastForwarding = true
+            emulatorThread?.fastForward = true
+        }
+    }
+
     val hideButtons by settingsManager.hideButtons.collectAsState(false)
     val ffSpeed by settingsManager.ffSpeed.collectAsState(1f)
     val ffAudioMode by settingsManager.ffAudioMode.collectAsState(1)
@@ -111,18 +127,9 @@ fun GameScreen(
             ffHoldKey = ffHoldKey,
             ffToggleKey = ffToggleKey,
             emulatorThread = emulatorThread,
-            onFastForwardDown = {
-                isFastForwarding = true
-                emulatorThread?.fastForward = true
-            },
-            onFastForwardUp = {
-                isFastForwarding = false
-                emulatorThread?.fastForward = false
-            },
-            onFastForwardToggle = {
-                isFastForwarding = !isFastForwarding
-                emulatorThread?.fastForward = isFastForwarding
-            },
+            onFastForwardDown = { updateFfState(true) },
+            onFastForwardUp = { updateFfState(false) },
+            onFastForwardToggle = { updateFfState(!isFastForwarding) },
             modifier = Modifier
                 .fillMaxSize()
                 .aspectRatio(3f / 2f, matchHeightConstraintsFirst = isLandscape)
@@ -156,10 +163,7 @@ fun GameScreen(
                 )
             }
 
-            IconButton(onClick = {
-                isFastForwarding = !isFastForwarding
-                emulatorThread?.fastForward = isFastForwarding
-            }) {
+            IconButton(onClick = { updateFfState(!isFastForwarding) }) {
                 Icon(
                     imageVector = Icons.Filled.FastForward,
                     contentDescription = "Fast Forward",
