@@ -6,6 +6,8 @@ Standalone [gpSP](https://github.com/libretro/gpsp)-based GBA emulator for Andro
 
 JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and very low power consumption, even when fast-forwarding. This makes it well-suited for mobile scenarios where efficiency is paramount.
 
+See here for a performance comparison of emulators using a simple benchmark.
+
 ## Features
 
 - Fast Forwarding (1.25x, 1.5x, 2x, up to 8x and Max)

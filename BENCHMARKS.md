@@ -1,3 +1,5 @@
+### Performance Comparison
+
 | Emulator | Engine | Time (1M Loops) | it/s | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | **gpSP** *(RetroArch)* | JIT | 19.4s | ~51,546 | |
