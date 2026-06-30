@@ -16,6 +16,7 @@ JustGBA leverages gpSP's JIT compiler to achieve exceptional execution speed and
 ## TODO
 
 - Export saves
+- Save states
 - Rebinding inputs
 - Verify support for other controllers
 
