@@ -1,14 +1,20 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.justgba.input
 
 import android.content.res.Configuration
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,18 +24,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.abs
+import kotlin.math.min
 
 object GbaButtons {
     const val A = 8
@@ -93,8 +108,8 @@ private fun LandscapeGamepad(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GameButton("Select", GbaButtons.SELECT, { onButtonDown(GbaButtons.SELECT) }, { onButtonUp(GbaButtons.SELECT) })
-            GameButton("Start", GbaButtons.START, { onButtonDown(GbaButtons.START) }, { onButtonUp(GbaButtons.START) })
+            GameButton("Select", GbaButtons.SELECT, { onButtonDown(GbaButtons.SELECT) }, { onButtonUp(GbaButtons.SELECT) }, Modifier.size(52.dp))
+            GameButton("Start", GbaButtons.START, { onButtonDown(GbaButtons.START) }, { onButtonUp(GbaButtons.START) }, Modifier.size(52.dp))
         }
 
         Row(
@@ -151,9 +166,9 @@ private fun PortraitGamepad(
         ) {
             ShoulderButton("L", GbaButtons.L, onButtonDown, onButtonUp)
             Spacer(Modifier.width(12.dp))
-            GameButton("Select", GbaButtons.SELECT, { onButtonDown(GbaButtons.SELECT) }, { onButtonUp(GbaButtons.SELECT) })
+            GameButton("Select", GbaButtons.SELECT, { onButtonDown(GbaButtons.SELECT) }, { onButtonUp(GbaButtons.SELECT) }, Modifier.size(52.dp))
             Spacer(Modifier.width(8.dp))
-            GameButton("Start", GbaButtons.START, { onButtonDown(GbaButtons.START) }, { onButtonUp(GbaButtons.START) })
+            GameButton("Start", GbaButtons.START, { onButtonDown(GbaButtons.START) }, { onButtonUp(GbaButtons.START) }, Modifier.size(52.dp))
             Spacer(Modifier.width(12.dp))
             ShoulderButton("R", GbaButtons.R, onButtonDown, onButtonUp)
         }
@@ -168,29 +183,215 @@ private fun DPad(
     onRight: () -> Unit,
     onRelease: (Int) -> Unit,
 ) {
-    val size = 120.dp
-    val btnSize = 36.dp
-    val gap = 2.dp
+    val dpSize = 150.dp
+    val dpArmWidth = 46.dp
+    val dpCornerRadius = 6.dp
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.size(size)
+    var pressedDirection by remember { mutableStateOf(-1) }
+
+    Canvas(
+        modifier = Modifier
+            .size(dpSize)
+            .pointerInput(Unit) {
+                val wPx = this.size.width.toFloat()
+                val hPx = this.size.height.toFloat()
+                val cxPx = wPx / 2f
+                val cyPx = hPx / 2f
+                val awPx = dpArmWidth.toPx()
+
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+
+                    var currentDir = hitTestDirection(down.position.x, down.position.y, cxPx, cyPx, awPx)
+                    if (currentDir != -1) {
+                        pressedDirection = currentDir
+                        when (currentDir) {
+                            GbaButtons.UP -> onUp()
+                            GbaButtons.DOWN -> onDown()
+                            GbaButtons.LEFT -> onLeft()
+                            GbaButtons.RIGHT -> onRight()
+                        }
+                    }
+
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull() ?: break
+                        if (!change.pressed) {
+                            if (currentDir != -1) {
+                                pressedDirection = -1
+                                onRelease(currentDir)
+                            }
+                            break
+                        }
+                        val newDir = hitTestDirection(change.position.x, change.position.y, cxPx, cyPx, awPx)
+                        if (newDir != currentDir) {
+                            if (currentDir != -1) onRelease(currentDir)
+                            currentDir = newDir
+                            if (newDir != -1) {
+                                pressedDirection = newDir
+                                when (newDir) {
+                                    GbaButtons.UP -> onUp()
+                                    GbaButtons.DOWN -> onDown()
+                                    GbaButtons.LEFT -> onLeft()
+                                    GbaButtons.RIGHT -> onRight()
+                                }
+                            } else {
+                                pressedDirection = -1
+                            }
+                        }
+                    }
+                }
+            }
     ) {
-        GameButton("▲", GbaButtons.UP, { onUp() }, { onRelease(GbaButtons.UP) },
-            Modifier.size(btnSize))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(gap),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            GameButton("◄", GbaButtons.LEFT, { onLeft() }, { onRelease(GbaButtons.LEFT) },
-                Modifier.size(btnSize))
-            Box(modifier = Modifier.size(btnSize))
-            GameButton("►", GbaButtons.RIGHT, { onRight() }, { onRelease(GbaButtons.RIGHT) },
-                Modifier.size(btnSize))
+        val w = size.width
+        val h = size.height
+        val cx = w / 2f
+        val cy = h / 2f
+        val aw = min(w, h) * (dpArmWidth.value / dpSize.value).toFloat()
+        val cr = min(
+            min(w, h) * (dpCornerRadius.value / dpSize.value).toFloat(),
+            aw / 4f
+        )
+
+        val bgColor = Color(0x77555555)
+        val pressColor = Color(0xFF4CAF50)
+
+        val centerRect = Rect(cx - aw / 2f, cy - aw / 2f, cx + aw / 2f, cy + aw / 2f)
+
+        listOf(GbaButtons.UP, GbaButtons.DOWN, GbaButtons.LEFT, GbaButtons.RIGHT).forEach { dir ->
+            drawPath(armPath(dir, cx, cy, aw, w, h, cr), bgColor)
         }
-        GameButton("▼", GbaButtons.DOWN, { onDown() }, { onRelease(GbaButtons.DOWN) },
-            Modifier.size(btnSize))
+        drawPath(Path().apply { addRect(centerRect) }, bgColor)
+
+        if (pressedDirection != -1) {
+            drawPath(armPath(pressedDirection, cx, cy, aw, w, h, cr), pressColor)
+        }
+
+        val arrowSize = aw * 0.35f
+        drawArrow(GbaButtons.UP, cx, cy, aw, arrowSize, Color.White)
+        drawArrow(GbaButtons.DOWN, cx, cy, aw, arrowSize, Color.White)
+        drawArrow(GbaButtons.LEFT, cx, cy, aw, arrowSize, Color.White)
+        drawArrow(GbaButtons.RIGHT, cx, cy, aw, arrowSize, Color.White)
     }
+}
+
+private fun hitTestDirection(
+    px: Float, py: Float,
+    cx: Float, cy: Float,
+    aw: Float,
+): Int {
+    val dx = px - cx
+    val dy = py - cy
+    val halfAw = aw / 2f
+
+    val inVertArm = abs(dx) < halfAw
+    val inHorizArm = abs(dy) < halfAw
+
+    if (!inVertArm && !inHorizArm) return -1
+
+    if (inVertArm && inHorizArm) {
+        return if (abs(dx) > abs(dy)) {
+            if (dx < 0) GbaButtons.LEFT else GbaButtons.RIGHT
+        } else {
+            if (dy < 0) GbaButtons.UP else GbaButtons.DOWN
+        }
+    }
+
+    return if (inVertArm) {
+        if (dy < 0) GbaButtons.UP else GbaButtons.DOWN
+    } else {
+        if (dx < 0) GbaButtons.LEFT else GbaButtons.RIGHT
+    }
+}
+
+private fun armPath(
+    direction: Int,
+    cx: Float, cy: Float,
+    aw: Float, w: Float, h: Float,
+    cr: Float,
+): Path = Path().apply {
+    val z = CornerRadius.Zero
+    when (direction) {
+        GbaButtons.UP -> addRoundRect(
+            RoundRect(
+                rect = Rect(cx - aw / 2f, 0f, cx + aw / 2f, cy - aw / 2f),
+                topLeft = CornerRadius(cr),
+                topRight = CornerRadius(cr),
+                bottomRight = z,
+                bottomLeft = z,
+            )
+        )
+        GbaButtons.DOWN -> addRoundRect(
+            RoundRect(
+                rect = Rect(cx - aw / 2f, cy + aw / 2f, cx + aw / 2f, h),
+                topLeft = z,
+                topRight = z,
+                bottomRight = CornerRadius(cr),
+                bottomLeft = CornerRadius(cr),
+            )
+        )
+        GbaButtons.LEFT -> addRoundRect(
+            RoundRect(
+                rect = Rect(0f, cy - aw / 2f, cx - aw / 2f, cy + aw / 2f),
+                topLeft = CornerRadius(cr),
+                topRight = z,
+                bottomRight = z,
+                bottomLeft = CornerRadius(cr),
+            )
+        )
+        GbaButtons.RIGHT -> addRoundRect(
+            RoundRect(
+                rect = Rect(cx + aw / 2f, cy - aw / 2f, w, cy + aw / 2f),
+                topLeft = z,
+                topRight = CornerRadius(cr),
+                bottomRight = CornerRadius(cr),
+                bottomLeft = z,
+            )
+        )
+    }
+}
+
+private fun DrawScope.drawArrow(
+    direction: Int,
+    cx: Float, cy: Float,
+    aw: Float, s: Float,
+    color: Color,
+) {
+    val sw = size.width
+    val sh = size.height
+    val path = Path().apply {
+        when (direction) {
+            GbaButtons.UP -> {
+                val y = (cy - aw / 2f) / 2f
+                moveTo(cx, y - s)
+                lineTo(cx - s * 0.8f, y)
+                lineTo(cx + s * 0.8f, y)
+                close()
+            }
+            GbaButtons.DOWN -> {
+                val y = (sh + cy + aw / 2f) / 2f
+                moveTo(cx, y + s)
+                lineTo(cx - s * 0.8f, y)
+                lineTo(cx + s * 0.8f, y)
+                close()
+            }
+            GbaButtons.LEFT -> {
+                val x = (cx - aw / 2f) / 2f
+                moveTo(x - s, cy)
+                lineTo(x, cy - s * 0.8f)
+                lineTo(x, cy + s * 0.8f)
+                close()
+            }
+            GbaButtons.RIGHT -> {
+                val x = (sw + cx + aw / 2f) / 2f
+                moveTo(x + s, cy)
+                lineTo(x, cy - s * 0.8f)
+                lineTo(x, cy + s * 0.8f)
+                close()
+            }
+        }
+    }
+    drawPath(path, color)
 }
 
 @Composable
@@ -203,10 +404,8 @@ private fun ActionButtons(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        GameButton("B", GbaButtons.B, { onB() }, { onRelease(GbaButtons.B) },
-            Modifier.size(56.dp), Color(0xFFE53935))
-        GameButton("A", GbaButtons.A, { onA() }, { onRelease(GbaButtons.A) },
-            Modifier.size(56.dp), Color(0xFF43A047))
+        GameButton("B", GbaButtons.B, { onB() }, { onRelease(GbaButtons.B) }, Modifier.size(64.dp))
+        GameButton("A", GbaButtons.A, { onA() }, { onRelease(GbaButtons.A) }, Modifier.size(64.dp))
     }
 }
 
@@ -217,28 +416,45 @@ private fun GameButton(
     onDown: () -> Unit,
     onUp: (Int) -> Unit,
     modifier: Modifier = Modifier.size(48.dp),
-    bg: Color = Color(0xFF555555),
+    bg: Color = Color(0x77555555),
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    val displayColor by animateColorAsState(
+        targetValue = if (isPressed) Color(0xFF4CAF50) else bg,
+        animationSpec = tween(durationMillis = 120),
+        label = "btnColor",
+    )
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .clip(CircleShape)
-            .background(bg)
+            .background(displayColor, CircleShape)
+            .border(1.dp, Color(0x44FFFFFF), CircleShape)
             .pointerInput(id) {
-                detectTapGestures(
-                    onPress = {
-                        onDown()
-                        awaitRelease()
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    isPressed = true
+                    onDown()
+                    try {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull() ?: break
+                            if (!change.pressed) break
+                        }
+                    } finally {
+                        isPressed = false
                         onUp(id)
                     }
-                )
+                }
             }
     ) {
         Text(
-            text, color = Color.White,
+            text,
+            color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -250,28 +466,47 @@ private fun ShoulderButton(
     onDown: (Int) -> Unit,
     onUp: (Int) -> Unit,
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    val displayColor by animateColorAsState(
+        targetValue = if (isPressed) Color(0xFF4CAF50) else Color(0x77555555),
+        animationSpec = tween(durationMillis = 120),
+        label = "shoulderColor",
+    )
+
+    val shape = RoundedCornerShape(8.dp)
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .width(48.dp)
-            .height(28.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(Color(0xFF777777))
+            .width(52.dp)
+            .height(32.dp)
+            .background(displayColor, shape)
+            .border(1.dp, Color(0x44FFFFFF), shape)
             .pointerInput(id) {
-                detectTapGestures(
-                    onPress = {
-                        onDown(id)
-                        awaitRelease()
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    isPressed = true
+                    onDown(id)
+                    try {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull() ?: break
+                            if (!change.pressed) break
+                        }
+                    } finally {
+                        isPressed = false
                         onUp(id)
                     }
-                )
+                }
             }
     ) {
         Text(
-            text, color = Color.White,
+            text,
+            color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
         )
     }
 }

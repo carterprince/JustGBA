@@ -81,6 +81,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.animation:animation")
     implementation("androidx.documentfile:documentfile:1.0.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     debugImplementation("androidx.compose.ui:ui-tooling")

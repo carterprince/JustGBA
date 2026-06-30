@@ -128,13 +128,15 @@ fun GameScreen(
                 .aspectRatio(3f / 2f, matchHeightConstraintsFirst = isLandscape)
         )
 
-        Text(
-            text = "FPS: $currentFps",
-            color = Color.Yellow,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(8.dp)
-        )
+        if (showFps) {
+            Text(
+                text = "FPS: $currentFps",
+                color = Color.Yellow,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+            )
+        }
 
         Row(
             modifier = Modifier
