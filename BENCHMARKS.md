@@ -2,16 +2,16 @@
 
 | Emulator | Engine Type | Time (1M Loops) | it/s | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **gpSP** *(RetroArch)* | JIT | 19.4s | ~51,546 | |
-| **gpSP** *(JustGBA)* | JIT | 19.4s | ~51,546 | |
-| **ClassicBoy** | Interpreter | 1m 54.6s | ~8,726 | |
-| **NooDS** | Interpreter | 2m 12.8s | ~7,530 | |
-| **GBA.emu** | Interpreter | 2m 38.0s | ~6,329 | Speed hard-capped at 20x |
-| **mGBA** *(RetroArch)* | Interpreter | 3m 31.6s | ~4,725 | |
-| **SkyEmu** | Interpreter | 8m 22.6s | ~1,989 | |
-| **mGBA** *(Lemuroid)* | Interpreter | *N/A* | *N/A* | Speed cannot be uncapped |
-| **Pizza Boy** | Interpreter | *N/A* | *N/A* | Speed cannot be uncapped |
-| **My Boy!** | JIT | *N/A* | *N/A* | Failed to count past 9 |
+| **[gpSP](https://docs.libretro.com/library/gpsp/)** *([RetroArch](https://www.retroarch.com/))* | JIT | 19.4s | ~51,546 | |
+| **[gpSP](https://docs.libretro.com/library/gpsp/)** *([JustGBA](https://github.com/carterprince/JustGBA))* | JIT | 19.4s | ~51,546 | |
+| **[ClassicBoy](https://play.google.com/store/apps/details?id=com.portableandroid.classicboyLite)** | Interpreter | 1m 54.6s | ~8,726 | |
+| **[NooDS](https://github.com/Hydr8gon/NooDS)** | Interpreter | 2m 12.8s | ~7,530 | |
+| **[GBA.emu](https://www.explusalpha.com/contents/gba-emu)** | Interpreter | 2m 38.0s | ~6,329 | Speed hard-capped at 20x |
+| **[mGBA](https://mgba.io/)** *([RetroArch](https://www.retroarch.com/))* | Interpreter | 3m 31.6s | ~4,725 | |
+| **[SkyEmu](https://skyemu.app/)** | Interpreter | 8m 22.6s | ~1,989 | |
+| **[mGBA](https://mgba.io/)** *([Lemuroid](https://github.com/Swordfish90/Lemuroid))* | Interpreter | *N/A* | *N/A* | Speed cannot be uncapped |
+| **[Pizza Boy](https://pizzaemulators.com/)** | Interpreter | *N/A* | *N/A* | Speed cannot be uncapped |
+| **[My Boy!](https://play.google.com/store/apps/details?id=com.fastemulator.gba)** | JIT | *N/A* | *N/A* | Failed to count past 9 |
 
 ### Methodology
 
