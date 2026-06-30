@@ -1,8 +1,6 @@
 # JustGBA
 
-<p align="center">
-  <img src="gba.svg" width="128" height="128" alt="JustGBA icon">
-</p>
+<img src="gba.svg" width="128" height="128" alt="JustGBA icon" align="left" style="margin-right: 16px;">
 
 Standalone [gpSP](https://github.com/libretro/gpsp)-based GBA emulator for Android (arm64-v8a). Built to be efficient, fast, and minimal.
 
