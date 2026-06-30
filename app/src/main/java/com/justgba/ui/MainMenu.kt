@@ -1,6 +1,7 @@
 package com.justgba.ui
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -18,8 +19,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,7 +47,10 @@ import androidx.compose.ui.unit.dp
 import com.justgba.data.RecentRomEntry
 import com.justgba.data.RecentRomsManager
 import com.justgba.settings.SettingsManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
@@ -72,6 +79,69 @@ fun MainMenu(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let { onRomSelected(it) }
+    }
+
+    var selectedEntry by remember { mutableStateOf<RecentRomEntry?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri: Uri? ->
+        val entry = selectedEntry ?: return@rememberLauncherForActivityResult
+        selectedEntry = null
+        val saveFile = File(
+            context.getExternalFilesDir(null) ?: context.filesDir,
+            "${File(entry.displayName).nameWithoutExtension}.sav"
+        )
+        if (!saveFile.exists()) {
+            Toast.makeText(context, "No save file found", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+        val target = uri ?: return@rememberLauncherForActivityResult
+        scope.launch(Dispatchers.IO) {
+            try {
+                context.contentResolver.openOutputStream(target)?.use { out ->
+                    saveFile.inputStream().use { inp -> inp.copyTo(out) }
+                }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Save exported", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Export failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        val entry = selectedEntry ?: return@rememberLauncherForActivityResult
+        selectedEntry = null
+        val source = uri ?: return@rememberLauncherForActivityResult
+        scope.launch(Dispatchers.IO) {
+            try {
+                val saveFile = File(
+                    context.getExternalFilesDir(null) ?: context.filesDir,
+                    "${File(entry.displayName).nameWithoutExtension}.sav"
+                )
+                context.contentResolver.openInputStream(source)?.use { inp ->
+                    saveFile.outputStream().use { out -> inp.copyTo(out) }
+                }
+                val stateFile = File(
+                    context.getExternalFilesDir(null) ?: context.filesDir,
+                    "${File(entry.displayName).nameWithoutExtension}.state.auto"
+                )
+                if (stateFile.exists()) stateFile.delete()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Save imported", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Import failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     Box(
@@ -146,6 +216,16 @@ fun MainMenu(
                             RecentRow(
                                 entry = entry,
                                 onClick = { onRecentSelected(entry) },
+                                onExportSave = {
+                                    selectedEntry = entry
+                                    exportLauncher.launch(
+                                        "${File(entry.displayName).nameWithoutExtension}.sav"
+                                    )
+                                },
+                                onImportSave = {
+                                    selectedEntry = entry
+                                    importLauncher.launch(arrayOf("*/*"))
+                                },
                             )
                         }
                     }
@@ -207,7 +287,10 @@ fun MainMenu(
 private fun RecentRow(
     entry: RecentRomEntry,
     onClick: () -> Unit,
+    onExportSave: () -> Unit,
+    onImportSave: () -> Unit,
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     val timeString = DateFormat.getDateTimeInstance(
         DateFormat.SHORT, DateFormat.SHORT
     ).format(Date(entry.lastPlayed))
@@ -231,7 +314,35 @@ private fun RecentRow(
         Text(
             text = timeString,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
         )
+        Box {
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "More",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Export Save", color = MaterialTheme.colorScheme.onSurface) },
+                    onClick = {
+                        menuExpanded = false
+                        onExportSave()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text("Import Save", color = MaterialTheme.colorScheme.onSurface) },
+                    onClick = {
+                        menuExpanded = false
+                        onImportSave()
+                    },
+                )
+            }
+        }
     }
 }
