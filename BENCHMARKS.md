@@ -2,8 +2,8 @@
 
 | Emulator | Engine Type | Time (1M Loops) | it/s | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **[gpSP](https://docs.libretro.com/library/gpsp/)** *(via [RetroArch](https://www.retroarch.com/))* | JIT | 19.4s | ~51,546 | |
-| **[gpSP](https://docs.libretro.com/library/gpsp/)** *(via [JustGBA](https://github.com/carterprince/JustGBA))* | JIT | 19.4s | ~51,546 | |
+| **[gpSP](https://github.com/libretro/gpsp)** *(via [RetroArch](https://www.retroarch.com/))* | JIT | 19.4s | ~51,546 | |
+| **[gpSP](https://github.com/libretro/gpsp)** *(via [JustGBA](https://github.com/carterprince/JustGBA))* | JIT | 19.4s | ~51,546 | |
 |[**Linkboy**](https://play.google.com/store/apps/details?id=com.pixelrespawn.linkboy&hl=en_US)|JIT|20.4s| ~49,020||
 | **[ClassicBoy](https://play.google.com/store/apps/details?id=com.portableandroid.classicboyLite)** | Interpreter | 1m 54.6s | ~8,726 | |
 | **[NooDS](https://github.com/Hydr8gon/NooDS)** | Interpreter | 2m 12.8s | ~7,530 | |
