@@ -5,16 +5,16 @@
 
 ## Power Draw Comparison
 
-| Metric | gpSP (RetroArch) | gpSP (JustGBA) | Linkboy | mGBA | SkyEmu |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| Emulator App CPU | 2.40 mAh | 2.19 mAh | 2.83 mAh | 4.71 mAh | 18.20 mAh |
-| Emulator App GPU | 0.57 mAh | 0.00 mAh | 0.41 mAh | 0.54 mAh | 1.53 mAh |
-| **Total Emulator Power Draw (CPU + GPU)** | **2.97 mAh** | **2.19 mAh** | **3.24 mAh** | **5.25 mAh** | **19.73 mAh** |
-| Screen (Global) | 19.70 mAh | 20.10 mAh | 21.10 mAh | 19.90 mAh | 17.70 mAh |
-| Audio (Global) | 12.50 mAh | 12.50 mAh | 12.50 mAh | 12.50 mAh | 12.50 mAh |
-| Other Device Draw (OS, Radio, Wifi, etc.) | 7.24 mAh | 5.66 mAh | 6.18 mAh | 7.42 mAh | 20.05 mAh |
-| **Device Total Power Draw** | **42.41 mAh** | **40.45 mAh** | **43.02 mAh** | **45.07 mAh** | **69.98 mAh** |
-| **Implied Battery Life (5000mAh)** | **19h 39m** | **20h 36m** | **19h 22m** | **18h 29m** | **11h 54m** |
+| Metric | gpSP (RetroArch) | gpSP (JustGBA) | Linkboy | mGBA | SkyEmu | ClassicBoy |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Emulator App CPU | 2.40 mAh | 2.19 mAh | 2.83 mAh | 4.71 mAh | 18.20 mAh | **148.00 mAh** |
+| Emulator App GPU | 0.57 mAh | 0.00 mAh | 0.41 mAh | 0.54 mAh | 1.53 mAh | 1.30 mAh |
+| **Total Emulator Power Draw** | **2.97 mAh** | **2.19 mAh** | **3.24 mAh** | **5.25 mAh** | **19.73 mAh** | **149.30 mAh** |
+| Screen (Global) | 19.70 mAh | 20.10 mAh | 21.10 mAh | 19.90 mAh | 17.70 mAh | 19.90 mAh |
+| Audio (Global) | 12.50 mAh | 12.50 mAh | 12.50 mAh | 12.50 mAh | 12.50 mAh | 12.50 mAh |
+| Other Device Draw (OS, Radio, etc.) | 7.24 mAh | 5.66 mAh | 6.18 mAh | 7.42 mAh | 20.05 mAh | 13.84 mAh |
+| **Device Total Power Draw** | **42.41 mAh** | **40.45 mAh** | **43.02 mAh** | **45.07 mAh** | **69.98 mAh** | **195.54 mAh** |
+| **Implied Battery Life (5000mAh)** | **19h 39m** | **20h 36m** | **19h 22m** | **18h 29m** | **11h 54m** | **4h 16m** |
 
 ### Methodology
 
