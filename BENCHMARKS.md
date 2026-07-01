@@ -13,7 +13,7 @@
 | Screen (Global) | 19.70 mAh | 20.10 mAh | 21.10 mAh | 19.90 mAh | 17.70 mAh |
 | Audio (Global) | 12.50 mAh | 12.50 mAh | 12.50 mAh | 12.50 mAh | 12.50 mAh |
 | Other Device Draw (OS, Radio, Wifi, etc.) | 7.24 mAh | 5.66 mAh | 6.18 mAh | 7.42 mAh | 20.05 mAh |
-| **Device Total Power Draw (Computed Sum)** | **42.41 mAh** | **40.45 mAh** | **43.02 mAh** | **45.07 mAh** | **69.98 mAh** |
+| **Device Total Power Draw** | **42.41 mAh** | **40.45 mAh** | **43.02 mAh** | **45.07 mAh** | **69.98 mAh** |
 | **Implied Battery Life (5000mAh)** | **19h 39m** | **20h 36m** | **19h 22m** | **18h 29m** | **11h 54m** |
 
 ### Methodology
