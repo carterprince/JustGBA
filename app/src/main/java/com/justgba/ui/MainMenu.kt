@@ -68,6 +68,7 @@ fun MainMenu(
     var isSettingsOpen by remember { mutableStateOf(false) }
 
     val hideButtons by settingsManager.hideButtons.collectAsState(false)
+    val hapticFeedback by settingsManager.hapticFeedback.collectAsState(true)
     val ffSpeed by settingsManager.ffSpeed.collectAsState(1f)
     val ffAudioMode by settingsManager.ffAudioMode.collectAsState(1)
     val showFps by settingsManager.showFps.collectAsState(false)
@@ -250,6 +251,7 @@ fun MainMenu(
     if (isSettingsOpen) {
         SettingsDialog(
             hideButtons = hideButtons,
+            hapticFeedback = hapticFeedback,
             ffSpeed = ffSpeed,
             ffAudioMode = ffAudioMode,
             showFps = showFps,
@@ -258,6 +260,9 @@ fun MainMenu(
             ffToggleKey = ffToggleKey,
             onHideButtonsChange = { hidden ->
                 scope.launch { settingsManager.setHideButtons(hidden) }
+            },
+            onHapticFeedbackChange = { enabled ->
+                scope.launch { settingsManager.setHapticFeedback(enabled) }
             },
             onFfSpeedChange = { speed ->
                 scope.launch { settingsManager.setFfSpeed(speed) }

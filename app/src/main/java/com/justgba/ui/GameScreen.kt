@@ -1,5 +1,6 @@
 package com.justgba.ui
 
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.SurfaceHolder
@@ -97,6 +98,7 @@ fun GameScreen(
     }
 
     val hideButtons by settingsManager.hideButtons.collectAsState(false)
+    val hapticFeedback by settingsManager.hapticFeedback.collectAsState(true)
     val ffSpeed by settingsManager.ffSpeed.collectAsState(1f)
     val ffAudioMode by settingsManager.ffAudioMode.collectAsState(1)
     val showFps by settingsManager.showFps.collectAsState(false)
@@ -179,7 +181,15 @@ fun GameScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 48.dp)
                 .alpha(if (hideButtons) 0f else 1f),
-            onButtonDown = { id -> InputState.setButton(0, id, true) },
+            onButtonDown = { id ->
+                if (hapticFeedback) {
+                    view.performHapticFeedback(
+                        HapticFeedbackConstants.VIRTUAL_KEY,
+                        HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                    )
+                }
+                InputState.setButton(0, id, true)
+            },
             onButtonUp = { id -> InputState.setButton(0, id, false) }
         )
     }
@@ -187,6 +197,7 @@ fun GameScreen(
     if (isMenuOpen) {
         SettingsDialog(
             hideButtons = hideButtons,
+            hapticFeedback = hapticFeedback,
             ffSpeed = ffSpeed,
             ffAudioMode = ffAudioMode,
             showFps = showFps,
@@ -195,6 +206,9 @@ fun GameScreen(
             ffToggleKey = ffToggleKey,
             onHideButtonsChange = { hidden ->
                 scope.launch { settingsManager.setHideButtons(hidden) }
+            },
+            onHapticFeedbackChange = { enabled ->
+                scope.launch { settingsManager.setHapticFeedback(enabled) }
             },
             onFfSpeedChange = { speed ->
                 scope.launch {
@@ -233,8 +247,6 @@ fun GameScreen(
             },
         )
     }
-
-
 }
 
 private fun mapKeyToGba(keyCode: Int): Int? {

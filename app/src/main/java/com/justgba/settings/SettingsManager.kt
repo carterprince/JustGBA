@@ -21,6 +21,7 @@ class SettingsManager(private val context: Context) {
         val FF_TOGGLE_KEY = intPreferencesKey("ff_toggle_key")
         val LOCK_LANDSCAPE = booleanPreferencesKey("lock_landscape")
         val LAST_FF_STATE = booleanPreferencesKey("last_ff_state")
+        val HAPTIC_FEEDBACK = booleanPreferencesKey("haptic_feedback")
     }
 
     val hideButtons: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -53,6 +54,10 @@ class SettingsManager(private val context: Context) {
 
     val lastFfState: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[LAST_FF_STATE] ?: false
+    }
+
+    val hapticFeedback: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[HAPTIC_FEEDBACK] ?: true
     }
 
     suspend fun setHideButtons(hidden: Boolean) {
@@ -100,6 +105,12 @@ class SettingsManager(private val context: Context) {
     suspend fun setLastFfState(state: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[LAST_FF_STATE] = state
+        }
+    }
+
+    suspend fun setHapticFeedback(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[HAPTIC_FEEDBACK] = enabled
         }
     }
 }

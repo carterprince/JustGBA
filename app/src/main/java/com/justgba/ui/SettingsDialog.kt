@@ -42,6 +42,7 @@ import com.justgba.input.createJoystickMotionListener
 @Composable
 fun SettingsDialog(
     hideButtons: Boolean,
+    hapticFeedback: Boolean,
     ffSpeed: Float,
     ffAudioMode: Int,
     showFps: Boolean,
@@ -49,6 +50,7 @@ fun SettingsDialog(
     ffHoldKey: Int,
     ffToggleKey: Int,
     onHideButtonsChange: (Boolean) -> Unit,
+    onHapticFeedbackChange: (Boolean) -> Unit,
     onFfSpeedChange: (Float) -> Unit,
     onFfAudioModeChange: (Int) -> Unit,
     onShowFpsChange: (Boolean) -> Unit,
@@ -85,6 +87,15 @@ fun SettingsDialog(
                 ) {
                     Text("Hide Virtual Gamepad")
                     Switch(checked = hideButtons, onCheckedChange = onHideButtonsChange)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Haptic Feedback")
+                    Switch(checked = hapticFeedback, onCheckedChange = onHapticFeedbackChange)
                 }
 
                 Text("Fast Forward Speed", style = MaterialTheme.typography.bodyMedium)
