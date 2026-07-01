@@ -5,7 +5,7 @@
 
 ## Power Draw Comparison
 
-| Metric | gpSP | JustGBA | Linkboy | mGBA | SkyEmu |
+| Metric | gpSP (RetroArch) | gpSP (JustGBA) | Linkboy | mGBA | SkyEmu |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | Emulator App CPU | 2.40 mAh | 2.19 mAh | 2.83 mAh | 4.71 mAh | 18.20 mAh |
 | Emulator App GPU | 0.57 mAh | 0.00 mAh | 0.41 mAh | 0.54 mAh | 1.53 mAh |
