@@ -240,6 +240,11 @@ fun GameScreen(
                 isMenuOpen = false
                 emulatorThread?.resume()
             },
+            onRestart = {
+                NativeBridge.nativeReset()
+                isMenuOpen = false
+                emulatorThread?.resume()
+            },
             onExit = {
                 isMenuOpen = false
                 emulatorThread?.resume()

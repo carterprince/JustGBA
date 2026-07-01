@@ -59,6 +59,7 @@ fun SettingsDialog(
     onFfToggleKeyChange: (Int) -> Unit,
     onResume: () -> Unit,
     onExit: (() -> Unit)? = null,
+    onRestart: (() -> Unit)? = null,
     title: String = "Game Paused",
 ) {
     AlertDialog(
@@ -188,6 +189,15 @@ fun SettingsDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(if (onExit == null) "Close" else "Resume Game")
+                }
+
+                if (onRestart != null) {
+                    TextButton(
+                        onClick = onRestart,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Restart Game")
+                    }
                 }
 
                 if (onExit != null) {
