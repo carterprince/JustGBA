@@ -1,4 +1,32 @@
-### Performance Comparison
+# Contents
+
+1. [Power Draw Comparison](#power-draw-comparison)
+2. [Performance Comparison](#performance-comparison)
+
+## Power Draw Comparison
+
+| Metric | gpSP (RetroArch) | gpSP (JustGBA) | Linkboy | mGBA (RetroArch) | Pizza Boy | SkyEmu | ClassicBoy |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Emulator App CPU (mAh) | 2.40 | 2.19 | 2.83 | 4.71 | 5.48 | 18.20 | 148.00 |
+| Emulator App GPU (mAh) | 0.57 | 0.00 | 0.41 | 0.54 | 0.47 | 1.53 | 1.30 |
+| **Total Emulator Power Draw (mAh)** | **2.97** | **2.19** | **3.24** | **5.25** | **5.95** | **19.73** | **149.30** |
+| Screen (Global) (mAh) | 19.70 | 20.10 | 21.10 | 19.90 | 23.60 | 17.70 | 19.90 |
+| Audio (Global) (mAh) | 12.50 | 12.50 | 12.50 | 12.50 | 12.50 | 12.50 | 12.50 |
+| Other Device Draw (OS, Radio, etc.) (mAh)| 7.24 | 5.66 | 6.18 | 7.42 | 6.39 | 20.05 | 13.84 |
+| **Device Total Power Draw (mAh)** | **42.41** | **40.45** | **43.02** | **45.07** | **48.44** | **69.98** | **195.54** |
+| **Implied Battery Life (5000mAh)** | **19h39m** | **20h36m** | **19h22m** | **18h29m** | **17h12m** | **11h54m** | **4h16m** |
+
+### Methodology
+
+Power draw was measured by running the *Sonic Advance* title screen demo loop at a forced 2x fast-forward speed for exactly 10 minutes on a Pixel 9 Pro. Android's built-in battery tracking was wiped immediately before each test and automatically dumped after 600 seconds using the following ADB command:
+
+```bash
+adb shell dumpsys batterystats --reset && sleep 600 && adb shell dumpsys batterystats > stats.txt
+```
+
+This isolated the exact milliamp-hour (mAh) consumption of the active test window, allowing for an accurate breakdown of power usage across the app's CPU/GPU threads, the physical screen, and background OS processes.
+
+## Performance Comparison
 
 | Emulator | Engine Type | Time (1M Loops) | it/s | Notes |
 | :--- | :--- | :--- | :--- | :--- |
