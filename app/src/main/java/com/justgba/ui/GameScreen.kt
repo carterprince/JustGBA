@@ -287,6 +287,9 @@ private fun EmulatorSurface(
                 holder.addCallback(object : SurfaceHolder.Callback {
                     override fun surfaceCreated(holder: SurfaceHolder) {
                         NativeBridge.nativeSetSurface(holder.surface)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                            holder.surface.setFrameRate(60f, android.view.Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
+                        }
                     }
                     override fun surfaceChanged(
                         holder: SurfaceHolder, format: Int, w: Int, h: Int
