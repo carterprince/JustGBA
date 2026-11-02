@@ -36,6 +36,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import com.justgba.input.GbaBindings
 import com.justgba.input.createJoystickMotionListener
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -49,6 +50,9 @@ fun SettingsDialog(
     lockLandscape: Boolean,
     ffHoldKey: Int,
     ffToggleKey: Int,
+    gbaBindings: Map<Int, Set<Int>> = GbaBindings.defaults,
+    onGbaBindingChange: (Int, Int) -> Unit = { _, _ -> },
+    onGbaBindingReset: (Int) -> Unit = {},
     onHideButtonsChange: (Boolean) -> Unit,
     onHapticFeedbackChange: (Boolean) -> Unit,
     onFfSpeedChange: (Float) -> Unit,
@@ -170,6 +174,22 @@ fun SettingsDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
+                Text("Controller", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Tap Bind, then press a key or controller button. The on-screen gamepad is unchanged.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                GbaBindings.buttons.forEach { (bit, name) ->
+                    GbaBindingRow(
+                        label = name,
+                        currentKeys = gbaBindings[bit] ?: emptySet(),
+                        onBind = { onGbaBindingChange(bit, it) },
+                        onDefault = { onGbaBindingReset(bit) },
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
                 KeyBindingRow(
                     label = "Fast Forward (Hold)",
                     currentKey = ffHoldKey,
@@ -282,6 +302,84 @@ private fun KeyBindingRow(
                 }
                 Text(display)
             }
+        }
+    }
+}
+
+@Composable
+private fun GbaBindingRow(
+    label: String,
+    currentKeys: Set<Int>,
+    onBind: (Int) -> Unit,
+    onDefault: () -> Unit,
+) {
+    var isListening by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(isListening) {
+        if (isListening) {
+            focusRequester.requestFocus()
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (isListening) {
+                        Modifier
+                            .focusRequester(focusRequester)
+                            .focusable()
+                            .onKeyEvent { event ->
+                                if (event.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) {
+                                    return@onKeyEvent true
+                                }
+                                val actualCode = event.nativeKeyEvent.keyCode
+                                if (actualCode == KeyEvent.KEYCODE_BACK) {
+                                    isListening = false
+                                    focusManager.clearFocus()
+                                    true
+                                } else {
+                                    onBind(actualCode)
+                                    isListening = false
+                                    focusManager.clearFocus()
+                                    true
+                                }
+                            }
+                    } else {
+                        Modifier
+                    }
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label)
+            Button(
+                onClick = {
+                    if (isListening) {
+                        isListening = false
+                        focusManager.clearFocus()
+                    } else {
+                        isListening = true
+                    }
+                }
+            ) {
+                if (isListening) {
+                    Text("Press any key...")
+                } else {
+                    val display = if (currentKeys.isEmpty()) {
+                        "Unbound"
+                    } else {
+                        currentKeys.sorted().joinToString(" / ") { KeyEvent.keyCodeToString(it) }
+                    }
+                    Text(display)
+                }
+            }
+        }
+        TextButton(onClick = onDefault) {
+            Text("Default")
         }
     }
 }

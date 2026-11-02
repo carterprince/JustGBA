@@ -17,10 +17,10 @@ See [Benchmarks](/BENCHMARKS.md) for a comparison of emulators on performance an
 - Portrait/Landscape mode
 - Recently played library in main menu
 - FPS Counter
+- Rebindable controller and keyboard inputs
 
 ## TODO
 
-- Rebinding inputs
 - Verify support for other controllers
 
 ## Build

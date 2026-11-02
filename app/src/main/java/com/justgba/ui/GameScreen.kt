@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.viewinterop.AndroidView
 import com.justgba.emulator.EmulatorThread
 import com.justgba.emulator.NativeBridge
+import com.justgba.input.GbaBindings
 import com.justgba.input.GbaButtons
 import com.justgba.input.InputState
 import com.justgba.input.VirtualGamepad
@@ -105,6 +106,7 @@ fun GameScreen(
     val lockLandscape by settingsManager.lockLandscape.collectAsState(false)
     val ffHoldKey by settingsManager.ffHoldKey.collectAsState(-1)
     val ffToggleKey by settingsManager.ffToggleKey.collectAsState(-1)
+    val gbaBindings by settingsManager.gbaBindings.collectAsState(GbaBindings.defaults)
 
     LaunchedEffect(ffSpeed) {
         NativeBridge.nativeSetFastForwardSpeed(ffSpeed)
@@ -128,6 +130,7 @@ fun GameScreen(
             isLandscape = isLandscape,
             ffHoldKey = ffHoldKey,
             ffToggleKey = ffToggleKey,
+            gbaBindings = gbaBindings,
             emulatorThread = emulatorThread,
             onFastForwardDown = { updateFfState(true) },
             onFastForwardUp = { updateFfState(false) },
@@ -204,6 +207,13 @@ fun GameScreen(
             lockLandscape = lockLandscape,
             ffHoldKey = ffHoldKey,
             ffToggleKey = ffToggleKey,
+            gbaBindings = gbaBindings,
+            onGbaBindingChange = { bit, keyCode ->
+                scope.launch { settingsManager.setGbaBinding(bit, keyCode) }
+            },
+            onGbaBindingReset = { bit ->
+                scope.launch { settingsManager.resetGbaBinding(bit) }
+            },
             onHideButtonsChange = { hidden ->
                 scope.launch { settingsManager.setHideButtons(hidden) }
             },
@@ -254,27 +264,12 @@ fun GameScreen(
     }
 }
 
-private fun mapKeyToGba(keyCode: Int): Int? {
-    return when (keyCode) {
-        KeyEvent.KEYCODE_DPAD_UP -> GbaButtons.UP
-        KeyEvent.KEYCODE_DPAD_DOWN -> GbaButtons.DOWN
-        KeyEvent.KEYCODE_DPAD_LEFT -> GbaButtons.LEFT
-        KeyEvent.KEYCODE_DPAD_RIGHT -> GbaButtons.RIGHT
-        KeyEvent.KEYCODE_Z, KeyEvent.KEYCODE_BUTTON_B -> GbaButtons.B
-        KeyEvent.KEYCODE_X, KeyEvent.KEYCODE_BUTTON_A -> GbaButtons.A
-        KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_BUTTON_L1 -> GbaButtons.L
-        KeyEvent.KEYCODE_S, KeyEvent.KEYCODE_W, KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_R1 -> GbaButtons.R
-        KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_BUTTON_SELECT -> GbaButtons.SELECT
-        KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BUTTON_START -> GbaButtons.START
-        else -> null
-    }
-}
-
 @Composable
 private fun EmulatorSurface(
     isLandscape: Boolean,
     ffHoldKey: Int,
     ffToggleKey: Int,
+    gbaBindings: Map<Int, Set<Int>>,
     emulatorThread: EmulatorThread?,
     onFastForwardDown: () -> Unit,
     onFastForwardUp: () -> Unit,
@@ -318,7 +313,7 @@ private fun EmulatorSurface(
                     }
                     return@setOnKeyListener true
                 }
-                val gbaKey = mapKeyToGba(keyCode)
+                val gbaKey = GbaBindings.mapKey(keyCode, gbaBindings)
                     ?: return@setOnKeyListener false
                 when (event.action) {
                     KeyEvent.ACTION_DOWN ->

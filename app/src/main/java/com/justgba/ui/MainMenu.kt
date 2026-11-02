@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.justgba.data.RecentRomEntry
 import com.justgba.data.RecentRomsManager
+import com.justgba.input.GbaBindings
 import com.justgba.settings.SettingsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -75,6 +76,7 @@ fun MainMenu(
     val lockLandscape by settingsManager.lockLandscape.collectAsState(false)
     val ffHoldKey by settingsManager.ffHoldKey.collectAsState(-1)
     val ffToggleKey by settingsManager.ffToggleKey.collectAsState(-1)
+    val gbaBindings by settingsManager.gbaBindings.collectAsState(GbaBindings.defaults)
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -258,6 +260,13 @@ fun MainMenu(
             lockLandscape = lockLandscape,
             ffHoldKey = ffHoldKey,
             ffToggleKey = ffToggleKey,
+            gbaBindings = gbaBindings,
+            onGbaBindingChange = { bit, keyCode ->
+                scope.launch { settingsManager.setGbaBinding(bit, keyCode) }
+            },
+            onGbaBindingReset = { bit ->
+                scope.launch { settingsManager.resetGbaBinding(bit) }
+            },
             onHideButtonsChange = { hidden ->
                 scope.launch { settingsManager.setHideButtons(hidden) }
             },
