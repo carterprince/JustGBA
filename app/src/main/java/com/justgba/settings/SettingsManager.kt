@@ -5,7 +5,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.justgba.input.GbaBindings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -60,6 +62,12 @@ class SettingsManager(private val context: Context) {
         prefs[HAPTIC_FEEDBACK] ?: true
     }
 
+    val gbaBindings: Flow<Map<Int, Set<Int>>> = context.dataStore.data.map { prefs ->
+        GbaBindings.defaults.mapValues { (bit, def) ->
+            prefs[stringPreferencesKey("gba_bind_$bit")]?.let { GbaBindings.decode(it) } ?: def
+        }
+    }
+
     suspend fun setHideButtons(hidden: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[HIDE_BUTTONS] = hidden
@@ -111,6 +119,24 @@ class SettingsManager(private val context: Context) {
     suspend fun setHapticFeedback(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[HAPTIC_FEEDBACK] = enabled
+        }
+    }
+
+    suspend fun setGbaBinding(bit: Int, keyCode: Int) {
+        context.dataStore.edit { prefs ->
+            for ((other, def) in GbaBindings.defaults) {
+                val key = stringPreferencesKey("gba_bind_$other")
+                val current = prefs[key]?.let { GbaBindings.decode(it) } ?: def
+                prefs[key] = GbaBindings.encode(
+                    if (other == bit) setOf(keyCode) else current - keyCode
+                )
+            }
+        }
+    }
+
+    suspend fun resetGbaBinding(bit: Int) {
+        context.dataStore.edit { prefs ->
+            prefs.remove(stringPreferencesKey("gba_bind_$bit"))
         }
     }
 }
